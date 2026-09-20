@@ -1,4 +1,4 @@
-# RGDS Dashboard · 0.1.0
+# RGDS Dashboard · 0.2.0
 
 Dashboard Android para Anbernic RG DS con GammaOS Lite 1.2.2. Diseñado para una ventana horizontal de aproximadamente **640×480 píxeles**, en cualquiera de sus dos pantallas. Paquete `com.rgds.dashboard`, Android mínimo 8.0 (API 26). No necesita root, Shizuku ni Android Studio.
 
@@ -11,8 +11,20 @@ Dashboard Android para Anbernic RG DS con GammaOS Lite 1.2.2. Diseñado para una
 - Temperatura de batería mediante el broadcast persistente `ACTION_BATTERY_CHANGED`.
 - Wallpaper `centerCrop`, selector de documentos Android, permiso URI persistente y oscurecimiento de 0–90%, guardado en preferencias privadas.
 - Interfaz oscura original, botones enfocables con cruceta, landscape, modo inmersivo y pantalla encendida mientras la actividad está visible.
+- **INFO / DIAGNÓSTICO**: dispositivo, displays, CPU, frecuencias, thermal, devfreq, SurfaceFlinger y relación informativa con Minecraft; resumen, RAW seleccionable, actualizar y copiar. Root opcional de solo lectura mediante Magisk.
 
 CPU, sensores y servicios son best-effort. Cada fuente falla de forma independiente y se vuelve a intentar; no se conserva una lectura antigua como si fuera actual. Un único worker toma muestras aproximadamente cada segundo, sin bloquear la interfaz. Los fondos se decodifican en otro worker, con reducción de resolución para limitar memoria.
+
+## INFO / diagnóstico v0.2
+
+1. Abre Minecraft en una pantalla y RGDS Dashboard en la otra.
+2. Pulsa **INFO**. La primera instantánea usa las APIs públicas y comandos sin root.
+3. Pulsa **AUTORIZAR ROOT** para ejecutar `su -c id` y responder al diálogo de Magisk, si aparece. Si no hay root o se rechaza, INFO sigue recopilando lo accesible sin privilegios.
+4. Pulsa **ACTUALIZAR** cuando cambie el juego o su pantalla. Solo se ejecuta una recopilación a la vez; durante ella aparece «Recopilando diagnóstico…».
+5. Usa **VER DIAGNÓSTICO RAW** y **COPIAR DIAGNÓSTICO**. El resumen puede acortarse; RAW conserva salidas, errores y códigos por comando. RAW muy grande se visualiza por páginas y se copia por partes numeradas si excede el tamaño seguro del portapapeles.
+6. Regresa con **VOLVER** o Back. El dashboard conserva wallpaper, estadísticas y `-- FPS`.
+
+INFO distingue el display actual de su ventana del ID capturado al recopilar. La detección de Minecraft indica menciones en las salidas, no garantiza que sea la actividad visible. Solo muestra PID/Display con evidencia explícita y deja `--` ante formatos desconocidos. [Comandos, límites y pruebas de diagnóstico](docs/DIAGNOSTICS.md).
 
 ## FPS y juego en la otra pantalla
 
@@ -36,15 +48,15 @@ Desde PowerShell, en el repositorio real (hay una carpeta contenedora con el mis
 cd F:\Github\RGDS-Dashboard\RGDS-Dashboard
 git status
 git add .
-git commit -m "Create RGDS Dashboard Android v0.1.0"
+git commit -m "Add read-only INFO diagnostics for RGDS Dashboard v0.2.0"
 git push -u origin main
 ```
 
 1. Abre [Actions del repositorio](https://github.com/Riv0Trill224/RGDS-Dashboard/actions).
 2. Selecciona **Android APK** y la ejecución del push. También puedes pulsar **Run workflow** en la rama `main`.
 3. Espera a que la compilación y la subida del APK finalicen correctamente. Tests y lint se ejecutan después y no bloquean la entrega del artifact.
-4. En **Artifacts**, descarga **RGDS-Dashboard-v0.1** y extrae el ZIP.
-5. Copia **RGDS-Dashboard-v0.1.apk** a la consola y ábrelo desde su gestor de archivos. Autoriza la instalación desde esa fuente si Android lo solicita.
+4. En **Artifacts**, descarga **RGDS-Dashboard-v0.2** y extrae el ZIP.
+5. Copia **RGDS-Dashboard-v0.2.apk** a la consola y ábrelo desde su gestor de archivos. Autoriza la instalación desde esa fuente si Android lo solicita.
 
 El APK es debug, firmado automáticamente e instalable sin Play Store. No requiere secretos de firma. La clave debug puede variar entre ejecuciones limpias de CI; si Android rechaza una actualización por firma incompatible, desinstala la versión anterior (se perderán sus preferencias) o usa una clave de firma estable en una versión futura.
 
@@ -62,9 +74,11 @@ sdkmanager "platforms;android-35" "build-tools;34.0.0"
 
 Salida: `app/build/outputs/apk/debug/app-debug.apk`. El workflow renombra la copia descargable. No subas `local.properties`, `.tools`, claves ni directorios `build`.
 
+Los tests de los scripts de diagnóstico usan un shell POSIX y árboles sysfs simulados, sin ejecutar `su`. En Ubuntu se utiliza `sh` del PATH. En Windows, para ejecutar esos tests, define `RGDS_TEST_SHELL` con la ruta a `sh.exe` de Git for Windows; `:app:assembleDebug` no necesita ese shell.
+
 ## Autenticación y privacidad
 
-El repositorio original estaba vacío: no había un sistema de autenticación que auditar. Esta aplicación no tiene login, backend, peticiones de red, contraseñas, tokens OAuth, anuncios, trackers ni telemetría. El manifiesto no declara permisos. El acceso al fondo es una concesión de Android limitada al documento elegido. Ver [flujo de permisos y credenciales](docs/AUTHENTICATION.md).
+Esta aplicación no tiene login, backend, peticiones de red, contraseñas, tokens OAuth, anuncios, trackers ni telemetría. El manifiesto no declara permisos. El acceso al fondo es una concesión de Android limitada al documento elegido. Magisk administra por separado la autorización root opcional de INFO. El diagnóstico permanece en memoria y solo se copia al portapapeles por acción del usuario. Ver [flujo de permisos y credenciales](docs/AUTHENTICATION.md).
 
 ## Verificación
 

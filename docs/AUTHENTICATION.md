@@ -32,3 +32,13 @@ En cada apertura se lee el URI guardado y se intenta abrir con la concesión per
 El workflow concede `contents: read` al token efímero del job para checkout. GitHub administra sus credenciales de ejecución y de subida de artifacts; no se copian al APK. La firma debug la genera el toolchain y solo identifica el paquete instalable: no autentica al usuario ni ofrece una identidad de distribución estable entre runners nuevos. No se han configurado secrets ni una clave de producción.
 
 La futura autorización Shizuku será independiente del permiso del wallpaper y deberá ser opcional, revocable y tolerante a la ausencia del servicio.
+
+## Root opcional en v0.2
+
+`DiagnosticActivity` no está exportada. Al entrar se recopila sin root. El usuario pulsa **AUTORIZAR ROOT** para que el worker de `DiagnosticCollector` invoque `RootShell.checkRoot()` (`su -c id`, timeout 30 s). Magisk gestiona su diálogo y sus decisiones guardadas: la app no intenta concederse acceso, no oculta el diálogo y no almacena credenciales de root.
+
+`uid=0` con salida exitosa indica AUTORIZADO. Una negativa/no UID root indica NO AUTORIZADO; fallo al iniciar su/no ejecutable indica NO DISPONIBLE. Antes de solicitarlo se muestra NO SOLICITADO. Si no se autoriza, el resto de la instantánea usa `sh` con el UID normal de la app, sin repetir peticiones su por cada sección.
+
+Los comandos pertenecen a un catálogo cerrado de lecturas: no se aceptan comandos ni rutas suministrados por el usuario o derivados de las salidas como código. No hay `setprop`, montaje, cambios de frecuencias, SELinux, archivos del sistema ni comandos para matar procesos ajenos. Al caducar/cancelarse un diagnóstico solo se finaliza su propio subproceso. Cada nueva recopilación root vuelve a comprobar autorización, sin asumir que siga concedida.
+
+El RAW puede contener nombres de apps, ventanas, dispositivos y procesos solicitados para investigar la consola. Permanece en memoria; pulsar COPIAR lo coloca en el portapapeles del sistema para compartirlo manualmente. La app no envía el informe a ningún servidor.

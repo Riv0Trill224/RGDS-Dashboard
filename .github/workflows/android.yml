@@ -58,12 +58,12 @@ jobs:
       - name: Build debug APK
         run: gradle --no-daemon :app:assembleDebug
       - name: Name APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk RGDS-Dashboard-v0.1.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk RGDS-Dashboard-v0.2.apk
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: RGDS-Dashboard-v0.1
-          path: RGDS-Dashboard-v0.1.apk
+          name: RGDS-Dashboard-v0.2
+          path: RGDS-Dashboard-v0.2.apk
           if-no-files-found: error
       # Publish the first APK even when optional quality checks fail.
       - name: Tests and lint (non-blocking)

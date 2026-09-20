@@ -61,6 +61,7 @@ public final class MainActivity extends Activity {
         addButton(controls, "Elegir fondo", this::chooseWallpaper);
         addButton(controls, "Oscurecer", this::showDimmer);
         addButton(controls, "Quitar fondo", this::removeWallpaper);
+        addButton(controls, "INFO", () -> startActivity(new Intent(this, DiagnosticActivity.class)));
         content.addView(controls, new LinearLayout.LayoutParams(-1, 48));
         root.addView(content, new FrameLayout.LayoutParams(-1, -1));
         setContentView(root);

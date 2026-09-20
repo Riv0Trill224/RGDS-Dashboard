@@ -1,3 +1,9 @@
 <resources>
     <string name="dim_level">Oscurecimiento: %1$d%%</string>
+    <string name="diagnostic_progress">Recopilando diagnóstico… %1$s</string>
+    <string name="diagnostic_collecting">Recopilando diagnóstico...</string>
+    <string name="diagnostic_ready">Diagnóstico listo · instantánea al pulsar ACTUALIZAR</string>
+    <string name="diagnostic_failed">No se pudo completar el diagnóstico. Puedes reintentar.</string>
+    <string name="diagnostic_page">Parte %1$d de %2$d</string>
+    <string name="diagnostic_display">Display actual: %1$s · ID al recopilar también en el informe</string>
 </resources>

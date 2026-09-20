@@ -18,7 +18,7 @@ Las zonas térmicas se inspeccionan individualmente; se muestra la más caliente
 
 ## Contrato futuro de FPS
 
-`FpsProvider.Reading` contiene un FPS nullable y un estado visible. `sample()` se invoca fuera del hilo principal; `close()` permite liberar recursos. La implementación v0.1 no usa Choreographer, SurfaceView ni timestamps del dashboard.
+`FpsProvider.Reading` contiene un FPS nullable y un estado visible. `sample()` se invoca fuera del hilo principal; `close()` permite liberar recursos. La implementación v0.2 mantiene `UnavailableFpsProvider` y no usa Choreographer, SurfaceView ni timestamps del dashboard.
 
 Para Shizuku:
 
@@ -30,3 +30,20 @@ Para Shizuku:
 6. Inyectar el proveedor en `MainActivity` y añadir ajustes de autorización/selección. `DashboardView` puede conservar su contrato de renderizado.
 
 El proveedor actual no necesita conocer displays porque siempre devuelve ausencia de FPS; la selección de destino pertenecerá a la implementación/ajustes de la etapa Shizuku.
+
+## Diagnóstico v0.2
+
+```text
+MainActivity → botón INFO → DiagnosticActivity (no exportada)
+  → captura Display ID de la View adjunta a la ventana
+  → ExecutorService (una instantánea, nunca comandos en UI)
+     → DiagnosticCollector: Build + DisplayManager + ActivityManager
+     → RootShell: sh; o su -c id si el usuario pide autorización
+     → DiagnosticCommands: catálogo fijo de lecturas
+     → CommandResult: stdout + stderr + exitCode + timeout/interrupción/truncado
+     → DiagnosticAnalysis: thermal conservador + evidencia Minecraft
+  → Handler main → resumen / RAW paginado / ClipboardManager
+onDestroy → cancela Future, interrumpe worker, cierra subproceso, ignora callbacks tardíos
+```
+
+La pérdida de foco o `onPause` no cancela el diagnóstico: Magisk puede superponer su autorización y el juego de otra pantalla puede conservar el foco. Al regresar con Back se destruye INFO y se cancela su trabajo. No hay un servicio ni un monitor root periódico. Más detalles en [DIAGNOSTICS.md](DIAGNOSTICS.md).

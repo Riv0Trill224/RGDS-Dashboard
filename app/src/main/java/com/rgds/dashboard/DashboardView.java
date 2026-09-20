@@ -36,7 +36,7 @@ public final class DashboardView extends View {
         canvas.translate((getWidth() - 640 * scale) / 2, (getHeight() - 400 * scale) / 2);
         canvas.scale(scale, scale);
         text(canvas, "RGDS  /  DASHBOARD", 24, 28, 14, 0xff62e5cb, true);
-        text(canvas, "SISTEMA • V0.1", 478, 28, 12, 0xffccd5e6, false);
+        text(canvas, "SISTEMA • V0.2", 478, 28, 12, 0xffccd5e6, false);
         text(canvas, timeText, 24, 111, 58, Color.WHITE, true);
         fitText(canvas, dateText, 26, 141, 17, 342, 0xffccd5e6);
         card(canvas, 380, 48, 236, 106);

@@ -1,6 +1,18 @@
 # Validación en consola
 
-## Comprobaciones locales realizadas (2026-09-20)
+## Comprobaciones locales v0.2.0 (2026-09-20)
+
+- `:app:testDebugUnitTest :app:lintDebug :app:assembleDebug`: BUILD SUCCESSFUL.
+- 18 tests aprobados: CPU (3), interpretación térmica/Minecraft (4), procesos/denegación/timeout/interrupción/captura concurrente (6), scripts reales contra sysfs simulado (5).
+- Los tests de procesos ejecutan una JVM de prueba, no `su`. Los de scripts usan un shell POSIX y directorios temporales; no leen ni modifican el sysfs real del host.
+- Lint: 0 errores; advertencias de landscape deliberado en ambas actividades y sugerencia tipográfica de puntos suspensivos.
+- `actionlint`: workflow válido. Comparado con la versión funcional: solo cambian los nombres APK/artifact de v0.1 a v0.2.
+- `apksigner verify --min-sdk-version 26`: firma debug v2 verificada. `aapt`: paquete `com.rgds.dashboard`, versionCode 2, versionName 0.2.0, minSdk 26, targetSdk/compileSdk 35.
+- Manifiesto final revisado: DiagnosticActivity declarada, no exportada, landscape; sin permisos adicionales. Java 8, AGP 8.7.3, Gradle 8.9 y JDK de compilación 17 conservados.
+- El dashboard solo añade INFO y cambia V0.1 por V0.2. FpsProvider/UnavailableFpsProvider, lecturas periódicas y wallpaper no se modificaron.
+- Pendiente: instalación/validación visual de v0.2 y autorización Magisk real en la consola. Ver [pruebas de INFO](DIAGNOSTICS.md#pruebas-en-rg-ds). La validación visual 640×480 se revisó en el código: dos filas de acciones y zona ScrollView con altura flexible; no se ejecutó un emulador.
+
+## Comprobaciones locales v0.1.0 (2026-09-20)
 
 - Compilación real con Java 17, Gradle 8.9, AGP 8.7.3 y SDK 35, sin Android Studio.
 - `testDebugUnitTest`: 3 tests, 0 fallos, 0 errores.
