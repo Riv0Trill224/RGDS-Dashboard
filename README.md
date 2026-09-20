@@ -42,7 +42,7 @@ git push -u origin main
 
 1. Abre [Actions del repositorio](https://github.com/Riv0Trill224/RGDS-Dashboard/actions).
 2. Selecciona **Android APK** y la ejecución del push. También puedes pulsar **Run workflow** en la rama `main`.
-3. Espera a que tests, lint y compilación finalicen correctamente.
+3. Espera a que la compilación y la subida del APK finalicen correctamente. Tests y lint se ejecutan después y no bloquean la entrega del artifact.
 4. En **Artifacts**, descarga **RGDS-Dashboard-v0.1** y extrae el ZIP.
 5. Copia **RGDS-Dashboard-v0.1.apk** a la consola y ábrelo desde su gestor de archivos. Autoriza la instalación desde esa fuente si Android lo solicita.
 
@@ -68,6 +68,6 @@ El repositorio original estaba vacío: no había un sistema de autenticación qu
 
 ## Verificación
 
-Los tests de CPU cubren intervalos reales, guest time sin doble conteo, iowait, datos ausentes/malformados y reinicio de contadores. CI ejecuta `testDebugUnitTest`, `lintDebug` y `assembleDebug`. Sigue [la lista de pruebas en consola](docs/TESTING.md) antes de considerar validado GammaOS.
+Los tests de CPU cubren intervalos reales, guest time sin doble conteo, iowait, datos ausentes/malformados y reinicio de contadores. CI reutiliza el SDK de `ubuntu-latest` e instala únicamente los paquetes necesarios que falten: `platform-tools`, `platforms;android-35` y `build-tools;34.0.0`. No instala el paquete obsoleto `tools`. Ejecuta `:app:assembleDebug`, publica el APK y después ejecuta tests/lint sin bloquear el artifact si fallan. Sigue [la lista de pruebas en consola](docs/TESTING.md) antes de considerar validado GammaOS.
 
 Referencias oficiales: [compatibilidad AGP 8.7 / Gradle / JDK](https://developer.android.com/build/releases/agp-8-7-0-release-notes), [documentos y permisos persistentes](https://developer.android.com/training/data-storage/shared/documents-files), [ciclo de vida en múltiples ventanas](https://developer.android.com/develop/ui/views/layout/support-multi-window-mode).
