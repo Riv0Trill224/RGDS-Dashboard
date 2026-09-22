@@ -28,6 +28,13 @@ import java.util.concurrent.TimeUnit;
 
 public final class MainActivity extends Activity {
     private static final int OPEN_WALLPAPER = 41;
+    private static final int EXPORT_LOG = 42;
+    private final ExecutorService rootWorker = Executors.newSingleThreadExecutor();
+    private final RootShell rootShell = new RootShell();
+    private volatile boolean rootAuthorized;
+    private volatile String rootState = "ROOT: verificando…";
+    private SessionLog sessionLog;
+    private byte[] pendingLog;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService images = Executors.newSingleThreadExecutor();
     private final FpsProvider fpsProvider = new UnavailableFpsProvider();
@@ -42,6 +49,15 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        sessionLog = new SessionLog(new java.io.File(getFilesDir(), "sessions"));
+        sessionLog.write("START v0.3.0-test1 Android=" + android.os.Build.VERSION.SDK_INT
+                + " model=" + android.os.Build.MODEL + " FPS=no implementado");
+        rootWorker.execute(() -> {
+            CommandResult result = rootShell.checkRoot();
+            rootState = "ROOT: " + (result.timedOut ? "TIEMPO AGOTADO" : RootShell.rootStatus(result));
+            rootAuthorized = RootShell.isRootIdentity(result);
+            sessionLog.write(rootState + "\n" + result.diagnosticText());
+        });
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         preferences = getSharedPreferences("dashboard", MODE_PRIVATE);
         FrameLayout root = new FrameLayout(this);
@@ -62,6 +78,7 @@ public final class MainActivity extends Activity {
         addButton(controls, "Oscurecer", this::showDimmer);
         addButton(controls, "Quitar fondo", this::removeWallpaper);
         addButton(controls, "INFO", () -> startActivity(new Intent(this, DiagnosticActivity.class)));
+        addButton(controls, "LOG", this::exportLog);
         content.addView(controls, new LinearLayout.LayoutParams(-1, 48));
         root.addView(content, new FrameLayout.LayoutParams(-1, -1));
         setContentView(root);
@@ -81,14 +98,25 @@ public final class MainActivity extends Activity {
     @Override protected void onStart() {
         super.onStart();
         final int current = ++generation;
+        sessionLog.write("START muestreo visible");
         StatsReader reader = new StatsReader(this);
         sampler = Executors.newSingleThreadScheduledExecutor();
         sampler.scheduleWithFixedDelay(() -> {
             StatsReader.Snapshot snapshot;
-            try { snapshot = reader.read(); }
-            catch (RuntimeException e) { snapshot = new StatsReader.Snapshot(); }
+            try { snapshot = reader.read(rootShell, rootAuthorized, sessionLog); }
+            catch (RuntimeException e) {
+                snapshot = new StatsReader.Snapshot();
+                snapshot.cpuStatus = "Error interno · ver LOG";
+                sessionLog.write("READ ERROR " + e);
+            }
             try { snapshot.fps = fpsProvider.sample(); }
             catch (RuntimeException ignored) { }
+            snapshot.rootStatus = rootState;
+            snapshot.logStatus = sessionLog.status();
+            sessionLog.write("SAMPLE " + rootState + " battery=" + snapshot.battery + " [" + snapshot.batteryStatus
+                    + "] ram=" + snapshot.ram + " [" + snapshot.ramStatus + "] cpu=" + snapshot.cpu
+                    + " [" + snapshot.cpuStatus + "] thermal=" + snapshot.thermal + " [" + snapshot.thermalSource
+                    + "] batteryTemp=" + snapshot.batteryTemp + " [" + snapshot.batteryTempStatus + "] fps=" + snapshot.fps.status);
             StatsReader.Snapshot result = snapshot;
             main.post(() -> { if (!destroyed && current == generation) dashboard.update(result); });
         }, 0, 1, TimeUnit.SECONDS);
@@ -96,6 +124,7 @@ public final class MainActivity extends Activity {
     // onPause is deliberately not used: on older Android a visible secondary activity is paused.
     @Override protected void onStop() {
         generation++;
+        sessionLog.write("STOP pantalla no visible; muestreo detenido");
         if (sampler != null) sampler.shutdownNow();
         super.onStop();
     }
@@ -103,6 +132,8 @@ public final class MainActivity extends Activity {
         destroyed = true;
         imageGeneration++;
         images.shutdownNow();
+        rootWorker.shutdownNow();
+        sessionLog.write("DESTROY");
         try { fpsProvider.close(); } catch (RuntimeException ignored) { }
         main.removeCallbacksAndMessages(null);
         super.onDestroy();
@@ -127,6 +158,21 @@ public final class MainActivity extends Activity {
     }
     @Override protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
+        if (request == EXPORT_LOG) {
+            byte[] bytes = pendingLog;
+            pendingLog = null;
+            if (result != RESULT_OK || data == null || data.getData() == null || bytes == null) return;
+            Uri target = data.getData();
+            images.execute(() -> {
+                boolean success = false;
+                try (java.io.OutputStream out = getContentResolver().openOutputStream(target, "wt")) {
+                    if (out != null) { out.write(bytes); success = true; }
+                } catch (Exception e) { sessionLog.write("EXPORT ERROR " + e.getClass().getSimpleName()); }
+                final boolean saved = success;
+                main.post(() -> { if (!destroyed) message(saved ? "Log guardado; puedes adjuntarlo al reporte." : "No se pudo guardar el log."); });
+            });
+            return;
+        }
         if (request != OPEN_WALLPAPER || result != RESULT_OK || data == null || data.getData() == null) return;
         Uri uri = data.getData();
         if (!"content".equals(uri.getScheme())) { message("Selecciona un documento de imagen."); return; }
@@ -218,4 +264,14 @@ public final class MainActivity extends Activity {
         new AlertDialog.Builder(this).setTitle("Wallpaper").setView(panel).setPositiveButton("Listo", null).show();
     }
     private void message(String text) { Toast.makeText(this, text, Toast.LENGTH_LONG).show(); }
+    private void exportLog() {
+        try {
+            pendingLog = sessionLog.snapshot();
+            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("text/plain");
+            intent.putExtra(Intent.EXTRA_TITLE, sessionLog.name());
+            startActivityForResult(intent, EXPORT_LOG);
+        } catch (Exception e) { pendingLog = null; message("No se pudo abrir la exportación del log."); }
+    }
 }

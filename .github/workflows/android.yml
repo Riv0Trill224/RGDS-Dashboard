@@ -1,5 +1,6 @@
 name: Android APK
 on:
+  pull_request:
   push:
     branches: [main]
   workflow_dispatch:
@@ -57,16 +58,14 @@ jobs:
           gradle-version: '8.9'
       - name: Build debug APK
         run: gradle --no-daemon :app:assembleDebug
+      - name: Tests and lint
+        timeout-minutes: 10
+        run: gradle --no-daemon :app:testDebugUnitTest :app:lintDebug
       - name: Name APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk RGDS-Dashboard-v0.2.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk RGDS-Dashboard-debug.apk
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: RGDS-Dashboard-v0.2
-          path: RGDS-Dashboard-v0.2.apk
+          name: RGDS-Dashboard-debug
+          path: RGDS-Dashboard-debug.apk
           if-no-files-found: error
-      # Publish the first APK even when optional quality checks fail.
-      - name: Tests and lint (non-blocking)
-        continue-on-error: true
-        timeout-minutes: 10
-        run: gradle --no-daemon --continue :app:testDebugUnitTest :app:lintDebug
