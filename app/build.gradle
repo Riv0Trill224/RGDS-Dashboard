@@ -1,5 +1,7 @@
 plugins { id 'com.android.application' }
 
+def releaseKeystore = System.getenv('RGDS_KEYSTORE_PATH')
+
 android {
     namespace 'com.rgds.dashboard'
     compileSdk 35
@@ -13,6 +15,23 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
+    }
+    signingConfigs {
+        if (releaseKeystore) {
+            release {
+                storeFile file(releaseKeystore)
+                storePassword System.getenv('RGDS_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('RGDS_KEY_ALIAS')
+                keyPassword System.getenv('RGDS_KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            if (releaseKeystore) {
+                signingConfig signingConfigs.release
+            }
+        }
     }
     lint { abortOnError true }
 }

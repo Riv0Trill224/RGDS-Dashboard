@@ -1,0 +1,62 @@
+name: Signed test APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # Signing secrets are used only by an explicit run on the reviewed main branch.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+          cache-disabled: true
+      - name: Install Android build tools
+        run: sdkmanager 'platforms;android-35' 'build-tools;34.0.0'
+      - name: Tests and lint
+        run: gradle --no-daemon :app:testReleaseUnitTest :app:lintRelease
+      - name: Restore signing key
+        env:
+          RGDS_KEYSTORE_BASE64: ${{ secrets.RGDS_KEYSTORE_BASE64 }}
+          RGDS_KEYSTORE_PASSWORD: ${{ secrets.RGDS_KEYSTORE_PASSWORD }}
+          RGDS_KEY_ALIAS: ${{ secrets.RGDS_KEY_ALIAS }}
+          RGDS_KEY_PASSWORD: ${{ secrets.RGDS_KEY_PASSWORD }}
+        run: python3 scripts/restore_signing_key.py
+      - name: Build signed APK
+        env:
+          RGDS_KEYSTORE_PATH: ${{ runner.temp }}/rgds-release.jks
+          RGDS_KEYSTORE_PASSWORD: ${{ secrets.RGDS_KEYSTORE_PASSWORD }}
+          RGDS_KEY_ALIAS: ${{ secrets.RGDS_KEY_ALIAS }}
+          RGDS_KEY_PASSWORD: ${{ secrets.RGDS_KEY_PASSWORD }}
+        run: gradle --no-daemon :app:assembleRelease
+      - name: Verify signature and package artifact
+        run: |
+          set -euo pipefail
+          apk=app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs "$apk" > "$RUNNER_TEMP/rgds-certificate.txt"
+          python3 scripts/verify_signing_certificate.py "$RUNNER_TEMP/rgds-certificate.txt"
+          mkdir -p dist
+          cp "$apk" dist/RGDS-Dashboard-signed-test.apk
+          cd dist
+          sha256sum RGDS-Dashboard-signed-test.apk > SHA256SUMS.txt
+      - name: Remove signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/rgds-release.jks" "$RUNNER_TEMP/rgds-certificate.txt"
+      - name: Upload verified APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: RGDS-Dashboard-signed-test-${{ github.run_number }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
