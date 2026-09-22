@@ -1,6 +1,25 @@
 # RGDS Dashboard · 0.2.0
 
-Dashboard Android para Anbernic RG DS con GammaOS Lite 1.2.2. Diseñado para una ventana horizontal de aproximadamente **640×480 píxeles**, en cualquiera de sus dos pantallas. Paquete `com.rgds.dashboard`, Android mínimo 8.0 (API 26). No necesita root, Shizuku ni Android Studio.
+**Tu juego en una pantalla. La información de tu consola en la otra.**
+
+RGDS Dashboard convierte una pantalla de tu consola en un panel con reloj, batería, memoria y los sensores que el sistema permita consultar. Puedes elegir tu propio fondo y ajustar su oscuridad para leer la información mientras juegas en la otra pantalla.
+
+La aplicación consulta los datos disponibles en Android y los actualiza mientras el panel está visible. Cuando un dato no se puede leer, lo indica. El botón **INFO** reúne información del dispositivo y sus pantallas para ayudarnos a investigar problemas.
+
+### Estado actual
+
+La **v0.2.0** está diseñada inicialmente para Anbernic RG DS con GammaOS Lite 1.2.2. La compilación y las pruebas locales están documentadas; la validación en la consola sigue pendiente en [la lista de pruebas](docs/TESTING.md). **Los FPS todavía no están implementados** y se muestran como `--`. La búsqueda específica de Minecraft existe solamente en el diagnóstico actual.
+
+### Próximos pasos
+
+La v0.3 priorizará solicitar root al iniciar y utilizarlo en las lecturas del panel, guardar registros de prueba y diagnosticar el juego seleccionado, con selección de pantalla. También prepararemos versiones públicas de prueba en GitHub Releases y su actualización desde la app, con firma estable. Los reportes por correo forman parte de esta etapa. Después ampliaremos las pruebas a otras consolas Android de doble pantalla y prepararemos un prototipo para Linux/ROCKNIX. Estas funciones están **planificadas**, no incluidas en v0.2.
+
+- [Plan de 20 noches](docs/PLAN_20_NOCHES.md)
+- [Alcance y criterios de la v0.3](docs/V0_3_SPEC.md)
+
+## Información técnica
+
+Ventana horizontal de referencia: **640×480 píxeles**, en cualquiera de sus dos pantallas. Paquete `com.rgds.dashboard`, Android mínimo 8.0 (API 26). El panel básico no necesita root, Shizuku ni Android Studio; INFO ofrece diagnóstico root opcional.
 
 ## Qué incluye
 
@@ -85,3 +104,12 @@ Esta aplicación no tiene login, backend, peticiones de red, contraseñas, token
 Los tests de CPU cubren intervalos reales, guest time sin doble conteo, iowait, datos ausentes/malformados y reinicio de contadores. CI reutiliza el SDK de `ubuntu-latest` e instala únicamente los paquetes necesarios que falten: `platform-tools`, `platforms;android-35` y `build-tools;34.0.0`. No instala el paquete obsoleto `tools`. Ejecuta `:app:assembleDebug`, publica el APK y después ejecuta tests/lint sin bloquear el artifact si fallan. Sigue [la lista de pruebas en consola](docs/TESTING.md) antes de considerar validado GammaOS.
 
 Referencias oficiales: [compatibilidad AGP 8.7 / Gradle / JDK](https://developer.android.com/build/releases/agp-8-7-0-release-notes), [documentos y permisos persistentes](https://developer.android.com/training/data-storage/shared/documents-files), [ciclo de vida en múltiples ventanas](https://developer.android.com/develop/ui/views/layout/support-multi-window-mode).
+
+
+## Proyecto abierto y comunidad
+
+RGDS Dashboard se publica bajo **GNU GPL v3.0 o posterior** (`GPL-3.0-or-later`), salvo componentes de terceros con sus propios avisos. Puedes estudiar el código, modificarlo, hacer forks y redistribuirlo, también comercialmente, cumpliendo la licencia. Al distribuir versiones derivadas, conserva las libertades de la GPL y proporciona el código fuente correspondiente a quienes las reciben. Las modificaciones de uso privado no obligan a publicarlas.
+
+Consulta [LICENSE](LICENSE) y [CONTRIBUTING.md](CONTRIBUTING.md). Son bienvenidos los reportes de errores, pruebas en otras consolas, traducciones, diseño y cambios mediante pull requests.
+
+El código necesario para compilar Android y el futuro port Linux, los scripts de publicación y cualquier futuro servicio propio de reportes estarán abiertos. Las contraseñas, claves privadas de firma y registros personales no se publican. Los forks pueden generar su propia firma y configurar su propio repositorio de actualizaciones y destino de reportes; no requieren nuestra clave oficial.
