@@ -52,6 +52,7 @@ final class DiagnosticCommands {
         commands.put("ROOT", "id");
         commands.put("KERNEL", "uname -a");
         commands.put("CPUINFO", "cat /proc/cpuinfo");
+        commands.put("CPU STAT", "cat /proc/stat");
         commands.put("MEMINFO", "cat /proc/meminfo");
         commands.put("SURFACEFLINGER", "dumpsys SurfaceFlinger --list");
         commands.put("DISPLAY DUMPSYS", "dumpsys display");

@@ -36,20 +36,20 @@ public final class DashboardView extends View {
         canvas.translate((getWidth() - 640 * scale) / 2, (getHeight() - 400 * scale) / 2);
         canvas.scale(scale, scale);
         text(canvas, "RGDS  /  DASHBOARD", 24, 28, 14, 0xff62e5cb, true);
-        text(canvas, "SISTEMA • V0.2", 478, 28, 12, 0xffccd5e6, false);
+        text(canvas, "V0.3 TEST 1", 478, 28, 12, 0xffccd5e6, false);
         text(canvas, timeText, 24, 111, 58, Color.WHITE, true);
         fitText(canvas, dateText, 26, 141, 17, 342, 0xffccd5e6);
         card(canvas, 380, 48, 236, 106);
         String fps = stats.fps.fps == null ? "-- FPS" : String.format(Locale.getDefault(), "%.0f FPS", stats.fps.fps);
         text(canvas, fps, 398, 103, 43, 0xff62e5cb, true);
         fitText(canvas, stats.fps.status, 398, 135, 13, 202, 0xffccd5e6);
-        metric(canvas, 24, 175, "BATERÍA", stats.battery, "Nivel de carga");
-        metric(canvas, 226, 175, "MEMORIA RAM", stats.ram, "Utilizada / total");
-        metric(canvas, 428, 175, "CPU · SISTEMA", stats.cpu, "Lectura de /proc/stat");
+        metric(canvas, 24, 175, "BATERÍA", stats.battery, stats.batteryStatus);
+        metric(canvas, 226, 175, "MEMORIA RAM", stats.ram, stats.ramStatus);
+        metric(canvas, 428, 175, "CPU · SISTEMA", stats.cpu, stats.cpuStatus);
         metric(canvas, 24, 276, "TEMPERATURA", stats.thermal, stats.thermalSource);
-        metric(canvas, 226, 276, "TEMP. BATERÍA", stats.batteryTemp, "Sensor de batería");
+        metric(canvas, 226, 276, "TEMP. BATERÍA", stats.batteryTemp, stats.batteryTempStatus);
         metric(canvas, 428, 276, "JUEGO ACTIVO", "No disponible", "Otra pantalla sin identificar");
-        text(canvas, "SIN ROOT  •  Lecturas best-effort  •  Actualización ~1 s", 24, 392, 12, 0xffccd5e6, false);
+        fitText(canvas, stats.rootStatus + " • " + stats.logStatus, 24, 392, 12, 592, 0xffccd5e6);
         canvas.restore();
     }
     private void metric(Canvas c, float x, float y, String label, String value, String detail) {
