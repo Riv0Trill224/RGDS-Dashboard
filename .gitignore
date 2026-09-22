@@ -6,4 +6,8 @@ local.properties
 .tools/
 *.jks
 *.keystore
+*.p12
+*.pfx
+*release-base64.txt
+__pycache__/
 *.apk
