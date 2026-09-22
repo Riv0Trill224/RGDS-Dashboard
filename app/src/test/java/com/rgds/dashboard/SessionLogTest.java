@@ -15,7 +15,8 @@ public class SessionLogTest {
         assertTrue(new String(log.snapshot(), StandardCharsets.UTF_8).contains("root denied"));
         log.write(new String(new char[3 * 1024 * 1024]).replace('\0', 'x'));
         log.write("extra");
-        assertEquals(2 * 1024 * 1024, log.snapshot().length);
+        assertTrue(log.snapshot().length <= 2 * 1024 * 1024);
+        assertTrue(new String(log.snapshot(), StandardCharsets.UTF_8).contains("LOG_LIMIT_REACHED"));
         assertTrue(log.status().contains("límite"));
     }
     @Test public void retainsAtMostTenSessions() throws Exception {

@@ -36,7 +36,7 @@ public final class DashboardView extends View {
         canvas.translate((getWidth() - 640 * scale) / 2, (getHeight() - 400 * scale) / 2);
         canvas.scale(scale, scale);
         text(canvas, "RGDS  /  DASHBOARD", 24, 28, 14, 0xff62e5cb, true);
-        text(canvas, "V0.3 TEST 1", 478, 28, 12, 0xffccd5e6, false);
+        text(canvas, "V" + BuildConfig.VERSION_NAME, 448, 28, 12, 0xffccd5e6, false);
         text(canvas, timeText, 24, 111, 58, Color.WHITE, true);
         fitText(canvas, dateText, 26, 141, 17, 342, 0xffccd5e6);
         card(canvas, 380, 48, 236, 106);
@@ -48,8 +48,8 @@ public final class DashboardView extends View {
         metric(canvas, 428, 175, "CPU · SISTEMA", stats.cpu, stats.cpuStatus);
         metric(canvas, 24, 276, "TEMPERATURA", stats.thermal, stats.thermalSource);
         metric(canvas, 226, 276, "TEMP. BATERÍA", stats.batteryTemp, stats.batteryTempStatus);
-        metric(canvas, 428, 276, "JUEGO ACTIVO", "No disponible", "Otra pantalla sin identificar");
-        fitText(canvas, stats.rootStatus + " • " + stats.logStatus, 24, 392, 12, 592, 0xffccd5e6);
+        metric(canvas, 428, 276, "OBJETIVO ELEGIDO", stats.target, stats.targetStatus);
+        fitText(canvas, stats.rootStatus + " • " + stats.logStatus + " • " + stats.updated, 24, 392, 12, 592, 0xffccd5e6);
         canvas.restore();
     }
     private void metric(Canvas c, float x, float y, String label, String value, String detail) {

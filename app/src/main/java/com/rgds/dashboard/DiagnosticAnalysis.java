@@ -9,9 +9,7 @@ import java.util.regex.Pattern;
 
 /** Conservative interpretation. Raw evidence remains available, including unsupported formats. */
 final class DiagnosticAnalysis {
-    private static final Pattern MINECRAFT = Pattern.compile("(?<![\\w.])com\\.mojang\\.minecraftpe(?![\\w.])");
     private static final Pattern PID = Pattern.compile("\\bpid\\s*[=:]\\s*(\\d+)\\b", Pattern.CASE_INSENSITIVE);
-    private static final Pattern PROCESS = Pattern.compile("\\b(\\d+):com\\.mojang\\.minecraftpe(?:/|\\s|})");
     private static final Pattern DISPLAY = Pattern.compile("\\b(?:mDisplayId|displayId)\\s*[=:]\\s*(\\d+)\\b");
 
     private DiagnosticAnalysis() { }
@@ -33,7 +31,10 @@ final class DiagnosticAnalysis {
             return String.format(Locale.getDefault(), "%.1f °C (sysfs: miligrados)", value / 1000d);
         } catch (NumberFormatException e) { return "-- (valor fuera de rango; conservar RAW)"; }
     }
-    static String minecraft(Map<String, CommandResult> results) {
+    static String application(Map<String, CommandResult> results, String targetPackage) {
+        if (targetPackage == null || targetPackage.isEmpty()) return "Selecciona una aplicación objetivo en Opciones. No se ha inferido el juego activo.";
+        Pattern target = Pattern.compile("(?<![\\w.])" + Pattern.quote(targetPackage) + "(?![\\w.])");
+        Pattern process = Pattern.compile("\\b(\\d+):" + Pattern.quote(targetPackage) + "(?:/|\\s|})");
         Set<String> pids = new LinkedHashSet<>(), displays = new LinkedHashSet<>(), surfaces = new LinkedHashSet<>();
         StringBuilder evidence = new StringBuilder();
         boolean found = false, complete = true;
@@ -44,12 +45,12 @@ final class DiagnosticAnalysis {
             if (!result.succeeded() || result.truncated || result.stdout.trim().isEmpty()
                     || result.stdout.contains("Permission Denial") || result.stdout.contains("Permission denied")) complete = false;
             for (String line : result.stdout.split("\\r?\\n")) {
-                if (!MINECRAFT.matcher(line).find()) continue;
+                if (!target.matcher(line).find()) continue;
                 found = true;
                 // IDs must be explicit on the SAME line as the package, never borrowed from nearby windows.
                 if (!"SURFACEFLINGER".equals(key)) {
                     addMatches(PID, line, pids);
-                    addMatches(PROCESS, line, pids);
+                    addMatches(process, line, pids);
                     addMatches(DISPLAY, line, displays);
                 } else if (!line.contains("Permission") && !line.contains("Error")) {
                     surfaces.add(line.trim());
@@ -57,7 +58,7 @@ final class DiagnosticAnalysis {
                 if (++lines <= 16) evidence.append('[').append(key).append("] ").append(line.trim()).append('\n');
             }
         }
-        return "Minecraft detectado: " + (found ? "SÍ (mención en las salidas)" : "NO (sin coincidencias)")
+        return targetPackage + " detectado: " + (found ? "SÍ (mención en las salidas)" : "NO (sin coincidencias)")
                 + (complete ? "" : "\nCobertura parcial: no permite descartar que esté ejecutándose.")
                 + "\nPID: " + joined(pids) + "\nDisplay: " + joined(displays)
                 + "\nSurface: " + joined(surfaces) + "\n"

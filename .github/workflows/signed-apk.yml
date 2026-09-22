@@ -2,18 +2,27 @@ name: Signed test APK
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['app/build.gradle']
+
+concurrency:
+  group: signed-release
+  cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
   build:
-    # Signing secrets are used only by an explicit run on the reviewed main branch.
+    # Signing secrets are never exposed to pull requests.
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: Linux prototype tests
+        run: python3 -m unittest discover -s linux -p 'test_*.py'
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -78,9 +87,11 @@ jobs:
           "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs "$apk" > "$RUNNER_TEMP/rgds-certificate.txt"
           python3 scripts/verify_signing_certificate.py "$RUNNER_TEMP/rgds-certificate.txt"
           mkdir -p dist
-          cp "$apk" dist/RGDS-Dashboard-signed-test.apk
+          cp "$apk" dist/RGDS-Dashboard.apk
+          python3 scripts/release_metadata.py
+          tar -czf dist/RGDS-Linux-prototype.tar.gz linux LICENSE
           cd dist
-          sha256sum RGDS-Dashboard-signed-test.apk > SHA256SUMS.txt
+          sha256sum RGDS-Dashboard.apk > SHA256SUMS.txt
       - name: Remove signing key
         if: always()
         run: rm -f "$RUNNER_TEMP/rgds-release.jks" "$RUNNER_TEMP/rgds-certificate.txt"
@@ -91,3 +102,28 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 14
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: RGDS-Dashboard-signed-test-${{ github.run_number }}
+          path: dist
+      - name: Publish public test release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="v$(python3 -c 'import json; print(json.load(open("dist/update.json"))["versionName"])')"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "::error::Release already exists. Increase versionCode and versionName; published APKs are not overwritten."
+            exit 1
+          fi
+          gh release create "$tag" dist/RGDS-Dashboard.apk dist/SHA256SUMS.txt dist/update.json dist/RGDS-Linux-prototype.tar.gz \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "RGDS Dashboard $tag" \
+            --draft --prerelease --notes-file docs/RELEASE_NOTES.md
+          gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease

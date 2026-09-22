@@ -64,5 +64,5 @@ final class DiagnosticCommands {
         commands.put("GPU PLATFORM SEARCH", GPU_SCAN);
         return commands;
     }
-    static boolean isAllowed(String command) { return catalog().containsValue(command); }
+    static boolean isAllowed(String command) { return catalog().containsValue(command) || SurfaceFps.allowed(command); }
 }

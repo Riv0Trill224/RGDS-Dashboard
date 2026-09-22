@@ -40,12 +40,12 @@ public final class DiagnosticActivity extends Activity {
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        rootRequested = saved != null && saved.getBoolean("rootRequested", false);
+        rootRequested = getSharedPreferences("dashboard", 0).getBoolean("rootAuthorized", false);
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(14, 8, 14, 6);
         layout.setBackgroundColor(0xff0c1320);
-        TextView title = label("RGDS / INFO   ·   V0.2", 22, 0xff62e5cb);
+        TextView title = label("RGDS / INFO   ·   " + BuildConfig.VERSION_NAME, 22, 0xff62e5cb);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         layout.addView(title);
         layout.addView(label("DIAGNÓSTICO DEL SISTEMA · Solo lectura", 13, 0xffccd5e6));

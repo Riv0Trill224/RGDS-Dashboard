@@ -18,6 +18,7 @@ public final class StatsReader {
         public String batteryStatus = "API batería sin dato válido", ramStatus = "API memoria sin dato válido";
         public String cpuStatus = "Esperando lectura", batteryTempStatus = "Sin dato en ACTION_BATTERY_CHANGED";
         public String rootStatus = "ROOT: verificando…", logStatus = "";
+        public String target = "Sin selección", targetStatus = "Selecciona aplicación y pantalla", updated = "--";
         public FpsProvider.Reading fps = new FpsProvider.Reading(null, "FPS del juego no disponible");
     }
     private final Context context;
