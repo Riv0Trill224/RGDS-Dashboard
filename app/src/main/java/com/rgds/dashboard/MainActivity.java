@@ -33,7 +33,12 @@ public final class MainActivity extends Activity {
     private final RootShell rootShell = new RootShell();
     private volatile boolean rootAuthorized;
     private volatile String rootState = "ROOT: verificando…";
-    private SessionLog sessionLog;
+    private volatile SessionLog sessionLog;
+    private TargetSelection target;
+    private ReportComposer reports;
+    private UpdateManager updates;
+    private volatile long rootCheckedAt;
+    private volatile boolean requestingRoot;
     private byte[] pendingLog;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService images = Executors.newSingleThreadExecutor();
@@ -49,17 +54,13 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        sessionLog = new SessionLog(new java.io.File(getFilesDir(), "sessions"));
-        sessionLog.write("START v0.3.0-test1 Android=" + android.os.Build.VERSION.SDK_INT
-                + " model=" + android.os.Build.MODEL + " FPS=no implementado");
-        rootWorker.execute(() -> {
-            CommandResult result = rootShell.checkRoot();
-            rootState = "ROOT: " + (result.timedOut ? "TIEMPO AGOTADO" : RootShell.rootStatus(result));
-            rootAuthorized = RootShell.isRootIdentity(result);
-            sessionLog.write(rootState + "\n" + result.diagnosticText());
-        });
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         preferences = getSharedPreferences("dashboard", MODE_PRIVATE);
+        target = new TargetSelection(this);
+        reports = new ReportComposer(this);
+        updates = new UpdateManager(this);
+        newSession();
+        requestRoot();
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(0xff0c1320);
         wallpaper = new ImageView(this);
@@ -74,9 +75,8 @@ public final class MainActivity extends Activity {
         content.addView(dashboard, new LinearLayout.LayoutParams(-1, 0, 1));
         LinearLayout controls = new LinearLayout(this);
         controls.setPadding(12, 0, 12, 0);
-        addButton(controls, "Elegir fondo", this::chooseWallpaper);
-        addButton(controls, "Oscurecer", this::showDimmer);
-        addButton(controls, "Quitar fondo", this::removeWallpaper);
+        addButton(controls, "Opciones", this::showOptions);
+        addButton(controls, "Pruebas", this::showReports);
         addButton(controls, "INFO", () -> startActivity(new Intent(this, DiagnosticActivity.class)));
         addButton(controls, "LOG", this::exportLog);
         content.addView(controls, new LinearLayout.LayoutParams(-1, 48));
@@ -85,6 +85,8 @@ public final class MainActivity extends Activity {
         immersive();
         String saved = preferences.getString("wallpaper", null);
         if (saved != null) loadWallpaper(Uri.parse(saved), false);
+        if (state == null) message("RGDS Dashboard · GitHub");
+        updates.check(false);
     }
     private void addButton(LinearLayout row, String label, Runnable action) {
         Button button = new Button(this);
@@ -102,21 +104,36 @@ public final class MainActivity extends Activity {
         StatsReader reader = new StatsReader(this);
         sampler = Executors.newSingleThreadScheduledExecutor();
         sampler.scheduleWithFixedDelay(() -> {
+            SessionLog log = sessionLog;
+            if (rootAuthorized && android.os.SystemClock.elapsedRealtime() - rootCheckedAt > 30000) {
+                CommandResult root = rootShell.runRootCommand("id");
+                rootCheckedAt = android.os.SystemClock.elapsedRealtime();
+                if (!RootShell.isRootIdentity(root)) {
+                    rootAuthorized = false;
+                    rootState = "ROOT: PERMISO PERDIDO / ERROR";
+                    preferences.edit().putBoolean("rootAuthorized", false).apply();
+                    log.write(rootState + " " + root.diagnosticText());
+                }
+            }
             StatsReader.Snapshot snapshot;
-            try { snapshot = reader.read(rootShell, rootAuthorized, sessionLog); }
+            try { snapshot = reader.read(rootShell, rootAuthorized, log); }
             catch (RuntimeException e) {
                 snapshot = new StatsReader.Snapshot();
                 snapshot.cpuStatus = "Error interno · ver LOG";
-                sessionLog.write("READ ERROR " + e);
+                log.write("READ ERROR " + e);
             }
-            try { snapshot.fps = fpsProvider.sample(); }
+            try { snapshot.fps = sampleFps(); }
             catch (RuntimeException ignored) { }
             snapshot.rootStatus = rootState;
-            snapshot.logStatus = sessionLog.status();
-            sessionLog.write("SAMPLE " + rootState + " battery=" + snapshot.battery + " [" + snapshot.batteryStatus
+            snapshot.logStatus = log.status();
+            snapshot.target = target.packageName().isEmpty() ? "Sin selección" : target.packageName();
+            snapshot.targetStatus = target.summary();
+            snapshot.updated = java.time.LocalTime.now().withNano(0).toString();
+            log.write("SAMPLE " + rootState + " target=" + snapshot.target + " [" + snapshot.targetStatus
+                    + "] battery=" + snapshot.battery + " [" + snapshot.batteryStatus
                     + "] ram=" + snapshot.ram + " [" + snapshot.ramStatus + "] cpu=" + snapshot.cpu
                     + " [" + snapshot.cpuStatus + "] thermal=" + snapshot.thermal + " [" + snapshot.thermalSource
-                    + "] batteryTemp=" + snapshot.batteryTemp + " [" + snapshot.batteryTempStatus + "] fps=" + snapshot.fps.status);
+                    + "] batteryTemp=" + snapshot.batteryTemp + " [" + snapshot.batteryTempStatus + "] fps=" + snapshot.fps.fps + " [" + snapshot.fps.status + "]");
             StatsReader.Snapshot result = snapshot;
             main.post(() -> { if (!destroyed && current == generation) dashboard.update(result); });
         }, 0, 1, TimeUnit.SECONDS);
@@ -133,6 +150,7 @@ public final class MainActivity extends Activity {
         imageGeneration++;
         images.shutdownNow();
         rootWorker.shutdownNow();
+        updates.close();
         sessionLog.write("DESTROY");
         try { fpsProvider.close(); } catch (RuntimeException ignored) { }
         main.removeCallbacksAndMessages(null);
@@ -264,6 +282,103 @@ public final class MainActivity extends Activity {
         new AlertDialog.Builder(this).setTitle("Wallpaper").setView(panel).setPositiveButton("Listo", null).show();
     }
     private void message(String text) { Toast.makeText(this, text, Toast.LENGTH_LONG).show(); }
+    @Override protected void onResume() { super.onResume(); if (updates != null) updates.resumeInstall(); }
+    private void newSession() {
+        if (sessionLog != null && !sessionLog.isFinished()) sessionLog.finish("interrumpida_por_nueva_prueba");
+        SessionLog log = new SessionLog(new java.io.File(getFilesDir(), "sessions"), BuildConfig.VERSION_NAME);
+        log.write("START version=" + BuildConfig.VERSION_NAME + " versionCode=" + BuildConfig.VERSION_CODE
+                + " Android=" + android.os.Build.VERSION.SDK_INT + " manufacturer=" + android.os.Build.MANUFACTURER
+                + " model=" + android.os.Build.MODEL + " ROM=" + android.os.Build.DISPLAY
+                + " target=" + target.packageName() + " display=" + target.displayId() + " selection=manual");
+        sessionLog = log;
+    }
+    private void requestRoot() {
+        if (requestingRoot) return;
+        requestingRoot = true; rootAuthorized = false; rootState = "ROOT: SOLICITANDO";
+        preferences.edit().putBoolean("rootAuthorized", false).apply();
+        rootWorker.execute(() -> {
+            CommandResult result = rootShell.checkRoot();
+            rootState = "ROOT: " + (result.timedOut ? "TIEMPO AGOTADO" : RootShell.rootStatus(result));
+            rootAuthorized = RootShell.isRootIdentity(result);
+            rootCheckedAt = android.os.SystemClock.elapsedRealtime();
+            preferences.edit().putBoolean("rootAuthorized", rootAuthorized).apply();
+            sessionLog.write(rootState + "\n" + result.diagnosticText());
+            requestingRoot = false;
+        });
+    }
+    private FpsProvider.Reading sampleFps() {
+        if (!rootAuthorized) return new FpsProvider.Reading(null, "FPS experimental requiere root");
+        if (!target.displayAvailable()) return new FpsProvider.Reading(null, "Selecciona pantalla del juego");
+        String layer = preferences.getString("fpsLayer", "");
+        if (layer.isEmpty()) return new FpsProvider.Reading(null, "Selecciona superficie FPS en Opciones");
+        String command = SurfaceFps.command(layer);
+        if (command == null) return new FpsProvider.Reading(null, "Nombre de superficie no compatible");
+        CommandResult result = rootShell.runRootCommand(command);
+        if (!result.succeeded() || result.truncated) return new FpsProvider.Reading(null, StatsReader.failure(result));
+        return SurfaceFps.parse(result.stdout, System.nanoTime());
+    }
+    private void chooseFpsLayer() {
+        if (!rootAuthorized || target.packageName().isEmpty() || !target.displayAvailable()) {
+            message("Autoriza root y selecciona aplicación y pantalla primero."); return;
+        }
+        String selectedPackage = target.packageName();
+        rootWorker.execute(() -> {
+            CommandResult result = rootShell.runRootCommand("dumpsys SurfaceFlinger --list");
+            java.util.ArrayList<String> layers = new java.util.ArrayList<>();
+            if (result.succeeded() && !result.truncated) for (String line : result.stdout.split("\n")) {
+                if (java.util.regex.Pattern.compile("(?<![\\w.])" + java.util.regex.Pattern.quote(selectedPackage) + "(?![\\w.])")
+                        .matcher(line).find() && !line.contains(getPackageName()) && SurfaceFps.command(line.trim()) != null)
+                    layers.add(line.trim());
+            }
+            main.post(() -> {
+                if (destroyed || !selectedPackage.equals(target.packageName())) return;
+                if (layers.isEmpty()) { message("No hay superficies compatibles. Abre el juego o revisa INFO."); return; }
+                new AlertDialog.Builder(this).setTitle("FPS experimental: elige la superficie del juego")
+                        .setItems(layers.toArray(new String[0]), (d, which) ->
+                                new AlertDialog.Builder(this).setTitle("Confirmar superficie")
+                                        .setMessage("Seleccionaste: " + layers.get(which) + "\nLa lista no demuestra en qué pantalla está. Confirma que corresponde al juego visible en la pantalla elegida. Mediremos presentaciones de esa superficie, no los Hz.")
+                                        .setPositiveButton("Confirmar", (dialog, w) -> preferences.edit().putString("fpsLayer", layers.get(which)).apply())
+                                        .setNegativeButton("Cancelar", null).show()).show();
+            });
+        });
+    }
+    private void showOptions() {
+        String[] items = {"Elegir juego o emulador", "Elegir pantalla del juego", "Mover Dashboard de pantalla", "Abrir juego en pantalla elegida",
+                "Elegir superficie FPS (experimental)", "Elegir fondo", "Oscurecer fondo", "Quitar fondo", "Reintentar root", "Buscar actualización", "Acerca de / GitHub"};
+        new AlertDialog.Builder(this).setTitle("Opciones").setItems(items, (d, which) -> {
+            switch (which) {
+                case 0: target.chooseApp(); break; case 1: target.chooseDisplay(false); break;
+                case 2: target.chooseDisplay(true); break; case 3: target.launchGame(); break;
+                case 4: chooseFpsLayer(); break; case 5: chooseWallpaper(); break;
+                case 6: showDimmer(); break; case 7: removeWallpaper(); break;
+                case 8: requestRoot(); break; case 9: updates.check(true); break;
+                default: new AlertDialog.Builder(this).setTitle("RGDS Dashboard " + BuildConfig.VERSION_NAME)
+                        .setMessage("Panel para consolas Android de doble pantalla. GPL-3.0-or-later.\nhttps://github.com/" + BuildConfig.UPDATE_REPOSITORY)
+                        .setPositiveButton("Abrir GitHub", (dialog, w) -> {
+                            try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/" + BuildConfig.UPDATE_REPOSITORY))); }
+                            catch (RuntimeException e) { message("No hay navegador disponible."); }
+                        }).setNegativeButton("Cerrar", null).show();
+            }
+        }).show();
+    }
+    private void showReports() {
+        String[] choices = {"Iniciar nueva prueba", "Finalizar prueba y preparar correo", "Reportar incidencia actual", "Sesiones anteriores", "Configurar correo de destino", "Exportar log actual"};
+        new AlertDialog.Builder(this).setTitle("Pruebas y reportes").setItems(choices, (d, which) -> {
+            switch (which) {
+                case 0: newSession(); message("Nueva prueba iniciada."); break;
+                case 1: new AlertDialog.Builder(this).setTitle("Resultado de la prueba")
+                        .setItems(new String[]{"Correcto", "Fallo", "Interrumpida"}, (dialog, result) -> {
+                            sessionLog.finish(new String[]{"correcto", "fallo", "interrumpida"}[result]); previewReport();
+                        }).show(); break;
+                case 2: previewReport(); break; case 3: reports.chooseSaved(); break;
+                case 4: reports.configure(); break; default: exportLog();
+            }
+        }).show();
+    }
+    private void previewReport() {
+        try { reports.preview(sessionLog.snapshot(), sessionLog.name()); }
+        catch (java.io.IOException e) { message("No se pudo leer el log."); }
+    }
     private void exportLog() {
         try {
             pendingLog = sessionLog.snapshot();

@@ -28,7 +28,7 @@ public final class DiagnosticCollector {
         String device = device();
         String displays = displays(currentDisplay);
         String activities = activities();
-        StringBuilder raw = new StringBuilder("RGDS Dashboard v0.2.0 · ").append(new Date()).append('\n');
+        StringBuilder raw = new StringBuilder("RGDS Dashboard " + BuildConfig.VERSION_NAME + " · ").append(new Date()).append('\n');
         raw.append("Instantánea secuencial; puede cambiar el estado entre comandos.\n")
                 .append("Solo lectura. Máximo 512 KiB por stream/comando; cualquier límite se indica.\n");
         section(raw, "DEVICE", device);
@@ -58,8 +58,9 @@ public final class DiagnosticCollector {
         String temperatures = thermal == null ? "No disponible" : DiagnosticAnalysis.thermal(thermal.stdout)
                 + (thermal.stderr.isEmpty() ? "" : "\nstderr:\n" + thermal.stderr);
         section(raw, "THERMAL INTERPRETADO", temperatures);
-        String minecraft = DiagnosticAnalysis.minecraft(results);
-        section(raw, "MINECRAFT", minecraft);
+        String targetPackage = context.getSharedPreferences("dashboard", 0).getString("targetPackage", "");
+        String target = DiagnosticAnalysis.application(results, targetPackage);
+        section(raw, "APLICACIÓN OBJETIVO", target);
         StringBuilder summary = new StringBuilder();
         section(summary, "ROOT", "Magisk/root: " + rootState + "\n" + excerpt(identity.diagnosticText(), 1000));
         section(summary, "DISPOSITIVO", device + "\nKernel: " + preview(results.get("KERNEL"), 600));
@@ -74,7 +75,7 @@ public final class DiagnosticCollector {
                 + preview(results.get("ACTIVITY DUMPSYS"), 1000) + "\nWINDOW\n"
                 + preview(results.get("WINDOW DUMPSYS"), 1000) + "\nSalidas sin filtrar en RAW.");
         section(summary, "SURFACEFLINGER", preview(results.get("SURFACEFLINGER"), 3000));
-        section(summary, "MINECRAFT", excerpt(minecraft, 4000));
+        section(summary, "APLICACIÓN OBJETIVO", excerpt(target, 4000));
         return new Report(summary.toString(), raw.toString());
     }
     private static String device() {

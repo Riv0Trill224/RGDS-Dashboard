@@ -21,7 +21,7 @@ public class DiagnosticAnalysisTest {
     @Test public void doesNotBorrowDisplayOrPidFromAnotherWindow() {
         Map<String, CommandResult> results = new LinkedHashMap<>();
         results.put("WINDOW DUMPSYS", output("com.rgds.dashboard pid=30 displayId=0\ncom.mojang.minecraftpe/MainActivity\n"));
-        String summary = DiagnosticAnalysis.minecraft(results);
+        String summary = DiagnosticAnalysis.application(results, "com.mojang.minecraftpe");
         assertTrue(summary.contains("detectado: SÍ"));
         assertTrue(summary.contains("PID: --"));
         assertTrue(summary.contains("Display: --"));
@@ -31,7 +31,7 @@ public class DiagnosticAnalysisTest {
         results.put("SURFACEFLINGER", output("SurfaceView[com.mojang.minecraftpe/MainActivity](BLAST)#42\nOther surface\n"));
         results.put("ACTIVITY DUMPSYS", output("ProcessRecord{abcd 1832:com.mojang.minecraftpe/u0a42}\n"));
         results.put("WINDOW DUMPSYS", output("com.mojang.minecraftpe/MainActivity mDisplayId=1\n"));
-        String summary = DiagnosticAnalysis.minecraft(results);
+        String summary = DiagnosticAnalysis.application(results, "com.mojang.minecraftpe");
         assertTrue(summary.contains("PID: 1832"));
         assertTrue(summary.contains("Display: 1"));
         assertTrue(summary.contains("Surface: SurfaceView[com.mojang.minecraftpe/MainActivity](BLAST)#42"));
@@ -39,7 +39,7 @@ public class DiagnosticAnalysisTest {
     @Test public void noDataIsInconclusiveAndSimilarPackageDoesNotMatch() {
         Map<String, CommandResult> results = new LinkedHashMap<>();
         results.put("SURFACEFLINGER", output("com.mojang.minecraftpe.fake/Main"));
-        String summary = DiagnosticAnalysis.minecraft(results);
+        String summary = DiagnosticAnalysis.application(results, "com.mojang.minecraftpe");
         assertTrue(summary.contains("detectado: NO"));
         assertTrue(summary.contains("Cobertura parcial"));
         assertTrue(summary.contains("Surface: --"));

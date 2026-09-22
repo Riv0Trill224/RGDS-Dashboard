@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400">
+  <rect width="1280" height="400" rx="28" fill="#0c1320"/>
+  <path d="M920 0v400m100-400v400m100-400v400m100-400v400M860 100h420M860 200h420M860 300h420" stroke="#1b2534" stroke-width="2"/>
+  <g transform="translate(55 65)">
+    <rect width="215" height="116" rx="20" fill="#1b2534" stroke="#62e5cb" stroke-width="8"/>
+    <rect y="139" width="215" height="116" rx="20" fill="#1b2534" stroke="#a0b2ff" stroke-width="8"/>
+    <path d="M25 67h28l20-32 28 58 22-38h65" fill="none" stroke="#62e5cb" stroke-width="9" stroke-linejoin="round"/>
+    <path d="M35 219v-34m35 34v-18m35 18v-53m35 53v-29m35 29v-63" stroke="#a0b2ff" stroke-width="12" stroke-linecap="round"/>
+  </g>
+  <text x="330" y="168" font-family="sans-serif" font-size="68" font-weight="700" fill="#fff">RGDS Dashboard</text>
+  <text x="333" y="226" font-family="sans-serif" font-size="27" fill="#ccd5e6">Tu juego arriba. Tu consola, a la vista.</text>
+  <text x="333" y="292" font-family="sans-serif" font-size="20" fill="#62e5cb">ANDROID · DOBLE PANTALLA · CÓDIGO ABIERTO</text>
+</svg>
