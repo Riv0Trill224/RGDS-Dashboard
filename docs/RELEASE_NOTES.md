@@ -1,3 +1,20 @@
+# RGDS Dashboard v0.4.0-test8 — descubrimiento de actualizaciones
+
+VersionCode 11. La lista pública de test7 devolvía assets=[] aunque el endpoint
+de adjuntos y la descarga directa contenían la APK y update.json. El actualizador
+ahora consulta /releases/{id}/assets cuando faltan estos archivos en el listado.
+Limita la búsqueda a cinco releases, conserva las verificaciones de URL, paquete,
+versión, hash y firma, y distingue una consulta incompleta de ausencia de novedades.
+Los fallos de una release no impiden examinar las siguientes. Evita caché local HTTP.
+
+Publicación directa como prerelease, sin transición desde borrador, y comparación
+de los archivos descargados con los artefactos originales. La detección desde las
+versiones anteriores se comprueba por la API pública antes de anunciar disponibilidad;
+si su listado sigue incompleto, esa instalación inicial requerirá descarga manual.
+
+Incluye la corrección de FPS del compositor de test7. Las pruebas automáticas no
+confirman por sí solas instalación Android ni FPS continuos en hardware.
+
 # RGDS Dashboard v0.4.0-test7 — FPS del compositor como alternativa
 
 VersionCode 10. Cuando no hay superficie seleccionada, o su historial no ofrece

@@ -40,10 +40,14 @@ final class UpdateManager {
                 JSONArray releases = new JSONArray(readText("https://api.github.com/repos/" + BuildConfig.UPDATE_REPOSITORY
                         + "/releases?per_page=30", 2 * 1024 * 1024));
                 JSONObject best = null;
-                for (int i = 0; i < releases.length(); i++) {
+                boolean incomplete = false;
+                for (int i = 0; i < Math.min(releases.length(), 5); i++) {
                     JSONObject release = releases.getJSONObject(i);
                     if (release.optBoolean("draft") || release.isNull("published_at")) continue;
-                    JSONArray assets = release.getJSONArray("assets");
+                    try {
+                    JSONArray assets = UpdateAssets.resolve(BuildConfig.UPDATE_REPOSITORY, release,
+                            url -> readText(url, 2 * 1024 * 1024));
+                    if (!UpdateAssets.complete(assets)) { incomplete = true; continue; }
                     String metadataUrl = null, apkUrl = null;
                     for (int j = 0; j < assets.length(); j++) {
                         JSONObject asset = assets.getJSONObject(j);
@@ -57,13 +61,14 @@ final class UpdateManager {
                     if (!apkUrl.equals(info.getString("url"))) continue;
                     if (info.getLong("versionCode") > BuildConfig.VERSION_CODE
                             && (best == null || info.getLong("versionCode") > best.getLong("versionCode"))) best = info;
-                    // Releases are newest first; cap metadata requests to keep opening lightweight.
-                    if (i >= 4) break;
+                    } catch (Exception candidateError) { incomplete = true; }
+
                 }
-                prefs.edit().putLong("lastCheck", System.currentTimeMillis()).apply();
+                if (!incomplete) prefs.edit().putLong("lastCheck", System.currentTimeMillis()).apply();
+                boolean partial = incomplete;
                 JSONObject result = best;
                 ui(() -> {
-                    if (result == null) { if (manual) message("No hay una versión más nueva en el canal público."); }
+                    if (result == null) { if (manual) message(partial ? "GitHub devolvió información incompleta. Reintenta o revisa Releases." : "No hay una versión más nueva en el canal público."); }
                     else new AlertDialog.Builder(activity).setTitle("Actualización " + result.optString("versionName"))
                             .setMessage("Versión pública de prueba. Se verificará la descarga y Android pedirá confirmar la instalación.")
                             .setPositiveButton("Descargar", (d, w) -> download(result)).setNegativeButton("Después", null).show();
@@ -156,6 +161,8 @@ final class UpdateManager {
             HttpURLConnection connection = (HttpURLConnection) new URL(address).openConnection();
             connection.setConnectTimeout(15000); connection.setReadTimeout(20000);
             connection.setInstanceFollowRedirects(false);
+            connection.setUseCaches(false);
+            connection.setRequestProperty("Cache-Control", "no-cache");
             connection.setRequestProperty("User-Agent", "RGDS-Dashboard/" + BuildConfig.VERSION_NAME);
             try {
                 int code = connection.getResponseCode();
