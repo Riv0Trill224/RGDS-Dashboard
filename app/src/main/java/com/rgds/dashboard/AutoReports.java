@@ -54,9 +54,10 @@ final class AutoReports {
                     lastSnapshot = now;
                 }
             }
-            String endpoint = prefs.getString("endpoint", ""), token = prefs.getString("token", "");
+            String endpoint = prefs.getString("endpoint", ReportTransport.CLOUDFLARE), token = prefs.getString("token", "");
             if (endpoint.isEmpty() || token.isEmpty()) { state = "Guardado: falta configurar servidor HTTPS"; return; }
             URL url = new URL(endpoint);
+            boolean cloudflare = ReportTransport.isCloudflare(endpoint);
             if (!"https".equals(url.getProtocol()) || url.getUserInfo() != null) throw new IOException("Se requiere HTTPS sin credenciales en URL");
             File[] files = queue.listFiles((d, n) -> n.endsWith(".json"));
             if (files == null) return;
@@ -65,6 +66,13 @@ final class AutoReports {
                 if (!prefs.getBoolean("enabled", false)) return;
                 byte[] data = Files.readAllBytes(file.toPath());
                 JSONObject report = new JSONObject(new String(data, StandardCharsets.UTF_8));
+                if (cloudflare) {
+                    String original = report.getString("log");
+                    String excerpt = ReportTransport.excerpt(original);
+                    report.put("log", excerpt).put("logTruncated", !original.equals(excerpt))
+                            .put("originalLogBytes", original.getBytes(StandardCharsets.UTF_8).length);
+                    data = report.toString().getBytes(StandardCharsets.UTF_8);
+                }
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setInstanceFollowRedirects(false); // Never forward auth to a redirected host.
                 connection.setConnectTimeout(10000); connection.setReadTimeout(20000);
@@ -84,25 +92,29 @@ final class AutoReports {
                         }
                     }
                     JSONObject ack = new JSONObject(new String(response.toByteArray(), StandardCharsets.UTF_8));
-                    if (!report.getString("reportId").equals(ack.optString("reportId")) || !"smtp_accepted".equals(ack.optString("status")))
-                        throw new IOException("Sin confirmación de envío SMTP");
+                    if (!ReportTransport.accepted(cloudflare, report.getString("reportId"), ack.optString("reportId"),
+                            ack.optString("status"), ack.optBoolean("authenticated")))
+                        throw new IOException(cloudflare ? "Actualiza el Worker: falta acuse autenticado" : "Sin confirmación SMTP");
                     if (!file.delete()) throw new IOException("No se pudo retirar reporte confirmado");
-                    state = "SMTP aceptó reporte; recepción no verificada";
+                    state = cloudflare ? "Cloudflare recibió extracto; revisa Observability. No es correo."
+                            : "SMTP aceptó reporte; recepción no verificada";
                 } finally { connection.disconnect(); }
             }
-        } catch (Exception e) { state = "Pendiente; reintento en 5 min (" + e.getClass().getSimpleName() + ")"; }
+        } catch (Exception e) { state = "Pendiente; reintento en 5 min. "
+                + (e instanceof IOException && e.getMessage() != null && (e.getMessage().startsWith("HTTP ")
+                || e.getMessage().startsWith("Actualiza el Worker")) ? e.getMessage() : e.getClass().getSimpleName()); }
     }
     void configure(Activity activity) {
         LinearLayout form = new LinearLayout(activity); form.setOrientation(LinearLayout.VERTICAL); form.setPadding(24, 12, 24, 12);
         Switch enabled = new Switch(activity); enabled.setText("Modo de desarrollo: captura automática cada 5 min");
         enabled.setChecked(prefs.getBoolean("enabled", false)); form.addView(enabled);
-        EditText endpoint = new EditText(activity); endpoint.setHint("https://tu-servidor/reports"); endpoint.setSingleLine(true);
-        endpoint.setText(prefs.getString("endpoint", "")); form.addView(endpoint);
-        EditText token = new EditText(activity); token.setHint("Token privado del dispositivo"); token.setSingleLine(true);
+        EditText endpoint = new EditText(activity); endpoint.setHint(ReportTransport.CLOUDFLARE); endpoint.setSingleLine(true);
+        endpoint.setText(prefs.getString("endpoint", ReportTransport.CLOUDFLARE)); form.addView(endpoint);
+        EditText token = new EditText(activity); token.setHint("Valor privado de RGDS_API_KEY del Worker"); token.setSingleLine(true);
         token.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         token.setText(prefs.getString("token", "")); form.addView(token);
         TextView note = new TextView(activity);
-        note.setText("Destino del relay oficial: riv0trill224@icloud.com. Se enviarán modelo/ROM, juego elegido, métricas y errores. Sin servidor solo se guardan hasta 10 reportes pendientes. " + state);
+        note.setText("Cloudflare: extracto reciente del diagnóstico cada 5 min, sin enviar correo. Incluye modelo/ROM si aparece en el extracto, juego, métricas y errores. Conserva LOG completo en la consola. Requiere Worker actualizado y RGDS_API_KEY. " + state);
         form.addView(note);
         ScrollView scroll = new ScrollView(activity); scroll.addView(form);
         new AlertDialog.Builder(activity).setTitle("Autoenvío de desarrollo").setView(scroll)

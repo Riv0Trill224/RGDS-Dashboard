@@ -46,6 +46,10 @@ respalda tus registros antes. Las APK oficiales conservan la misma clave de firm
 
 ## Correo y privacidad
 
+v0.4.0-test3 integra [Cloudflare Workers](cloudflare/README.md) como receptor económico
+de extractos de diagnóstico. URL preconfigurada; requiere actualizar el Worker y
+configurar el secreto privado. Observability recibe logs, **no envía correos**.
+
 Hotfix v0.4.0-test2: destino manual por defecto `riv0trill224@icloud.com`, aviso root
 y diagnóstico FPS ampliado. Autoenvío de desarrollo configurable cada cinco minutos:
 requiere desplegar [el relay HTTPS/SMTP](report-relay/README.md). El código está incluido,
