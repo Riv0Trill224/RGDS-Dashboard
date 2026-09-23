@@ -1,3 +1,21 @@
+# RGDS Dashboard v0.4.0-test5 — selección y diagnóstico de superficies
+
+VersionCode 8. El aviso «No hay superficies compatibles» ocultaba resultados
+muy distintos. Ahora distingue error del comando, lista truncada, permisos y lista
+sin candidatos. Guarda SURFACE_LIST (salida, stderr y estado) en el log incluso
+si no se pudo elegir nada.
+
+El selector conserva superficies sin el nombre del paquete, ordena primero las
+coincidentes y marca las demás como sin verificar. No asigna automáticamente
+superficies a Minecraft ni deduce su pantalla. Admite nombres Unicode y símbolos
+como $ dentro de un único argumento entre comillas; rechaza comillas simples y
+controles. Pruebas de shell verifican que los símbolos se pasan literalmente.
+
+La captura test4 demuestra ausencia de candidatos, pero no cuál de los filtros
+falló. No hay FPS aprobados en hardware. Actualizar, elegir superficie, jugar 40 s
+y compartir LOG si no aparecen FPS. Se conserva Cloudflare; despliegue/recepción
+real no verificados en esta entrega.
+
 # RGDS Dashboard v0.4.0-test4 — diagnóstico compatible con Android
 
 VersionCode 7. Corrige la llave literal sin escapar en la expresión del proceso
