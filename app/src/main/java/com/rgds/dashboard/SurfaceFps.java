@@ -5,8 +5,13 @@ import java.util.TreeSet;
 /** Experimental surface presentation rate, not a guarantee of game simulation FPS. */
 final class SurfaceFps {
     static String command(String layer) {
-        if (layer == null || layer.isEmpty() || layer.length() > 300
-                || !layer.matches("[A-Za-z0-9 ._:/#@{}()\\[\\],=+\\-]+")) return null;
+        if (layer == null || layer.isEmpty() || layer.length() > 1024) return null;
+        // The entire name is one single-quoted shell argument. Never allow the
+        // quote that could end it, or control characters; other glyphs are literal.
+        for (int i = 0; i < layer.length(); i++) {
+            char c = layer.charAt(i);
+            if (c == 39 || Character.isISOControl(c)) return null;
+        }
         return "dumpsys SurfaceFlinger --latency '" + layer + "'";
     }
     static boolean allowed(String command) {

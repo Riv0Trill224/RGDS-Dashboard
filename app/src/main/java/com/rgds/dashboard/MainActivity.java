@@ -338,22 +338,37 @@ public final class MainActivity extends Activity {
             message("Autoriza root y selecciona aplicación y pantalla primero."); return;
         }
         String selectedPackage = target.packageName();
+        int selectedDisplay = target.displayId();
         rootWorker.execute(() -> {
             CommandResult result = rootShell.runRootCommand("dumpsys SurfaceFlinger --list");
-            java.util.ArrayList<String> layers = new java.util.ArrayList<>();
-            if (result.succeeded() && !result.truncated) for (String line : result.stdout.split("\n")) {
-                if (java.util.regex.Pattern.compile("(?<![\\w.])" + java.util.regex.Pattern.quote(selectedPackage) + "(?![\\w.])")
-                        .matcher(line).find() && !line.contains(getPackageName()) && SurfaceFps.command(line.trim()) != null)
-                    layers.add(line.trim());
-            }
+            SurfaceCatalog catalog = new SurfaceCatalog(result, selectedPackage, getPackageName());
+            sessionLog.write("SURFACE_LIST package=" + selectedPackage + " display=" + selectedDisplay
+                    + " " + catalog.summary() + "\n" + result.diagnosticText());
             main.post(() -> {
-                if (destroyed || !selectedPackage.equals(target.packageName())) return;
-                if (layers.isEmpty()) { message("No hay superficies compatibles. Abre el juego o revisa INFO."); return; }
-                new AlertDialog.Builder(this).setTitle("FPS experimental: elige la superficie del juego")
-                        .setItems(layers.toArray(new String[0]), (d, which) ->
+                if (destroyed || !selectedPackage.equals(target.packageName())
+                        || selectedDisplay != target.displayId()) return;
+                if (catalog.error != null || catalog.layers.isEmpty()) {
+                    new AlertDialog.Builder(this).setTitle("Superficies FPS")
+                            .setMessage(catalog.summary() + "\nLa respuesta está guardada en LOG.")
+                            .setPositiveButton("Aceptar", null).show();
+                    return;
+                }
+                String[] labels = new String[catalog.layers.size()];
+                for (int i = 0; i < labels.length; i++) labels[i] =
+                        (i < catalog.matches ? "[Paquete] " : "[Sin verificar] ") + catalog.layers.get(i);
+                new AlertDialog.Builder(this).setTitle("Superficies: " + catalog.matches + " del paquete")
+                        .setItems(labels, (d, which) ->
                                 new AlertDialog.Builder(this).setTitle("Confirmar superficie")
-                                        .setMessage("Seleccionaste: " + layers.get(which) + "\nLa lista no demuestra en qué pantalla está. Confirma que corresponde al juego visible en la pantalla elegida. Mediremos presentaciones de esa superficie, no los Hz.")
-                                        .setPositiveButton("Confirmar", (dialog, w) -> preferences.edit().putString("fpsLayer", layers.get(which)).apply())
+                                        .setMessage("Seleccionaste: " + catalog.layers.get(which)
+                                                + "\nLa lista no demuestra el juego ni la pantalla de cada superficie. Confirma que corresponde al juego visible. Mediremos presentaciones, no los Hz.")
+                                        .setPositiveButton("Confirmar", (dialog, w) -> {
+                                            if (!selectedPackage.equals(target.packageName())
+                                                    || selectedDisplay != target.displayId()) return;
+                                            String layer = catalog.layers.get(which);
+                                            preferences.edit().putString("fpsLayer", layer).apply();
+                                            sessionLog.write("SURFACE_SELECTED layer=" + layer
+                                                    + " package=" + selectedPackage + " display=" + selectedDisplay);
+                                        })
                                         .setNegativeButton("Cancelar", null).show()).show();
             });
         });

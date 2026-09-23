@@ -22,7 +22,23 @@ public class SurfaceFpsTest {
     @Test public void rejectsShellInjection() {
         String good = "SurfaceView[com.example.game/Main](BLAST)#12";
         assertTrue(SurfaceFps.allowed(SurfaceFps.command(good)));
-        for (String bad : new String[]{"x'; id; '", "$(id)", "`id`", "x\ny", "x|id", "x&cat /etc/passwd"})
+        for (String bad : new String[]{"x'; id; '", "x\ny", "x\ry", "x\u0000y"})
             assertNull(SurfaceFps.command(bad));
+    }
+    @Test public void extendedNamesRemainOneLiteralShellArgument() throws Exception {
+        String[] names = {"SurfaceView - Game$Renderer#4", "Juego • pantalla 1", "$(printf BAD)",
+                "`printf BAD`", "x|printf BAD", "x;printf BAD", "x&printf BAD", "a\\b"};
+        for (String name : names) {
+            String command = SurfaceFps.command(name);
+            assertTrue(SurfaceFps.allowed(command));
+            String argument = command.substring("dumpsys SurfaceFlinger --latency ".length());
+            Process process = new ProcessBuilder("sh", "-c", "printf '%s' " + argument).start();
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            int value;
+            while ((value = process.getInputStream().read()) != -1) out.write(value);
+            assertEquals(0, process.waitFor());
+            assertEquals(name, new String(out.toByteArray(), java.nio.charset.StandardCharsets.UTF_8));
+        }
+        assertFalse(SurfaceFps.allowed("dumpsys SurfaceFlinger --latency 'x'; id; '"));
     }
 }
