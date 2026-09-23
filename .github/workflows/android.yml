@@ -16,6 +16,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Linux prototype tests
         run: python3 -m unittest discover -s linux -p 'test_*.py'
+      - name: Report relay tests (no email sent)
+        run: python3 -m unittest discover -s report-relay
       - name: Java 17
         uses: actions/setup-java@v4
         with:
