@@ -39,7 +39,6 @@ public final class MainActivity extends Activity {
             new RootShell();
 
     private volatile boolean rootAuthorized;
-
     private volatile String rootState =
             "ROOT: verificando…";
 
@@ -54,7 +53,6 @@ public final class MainActivity extends Activity {
     private long lastHwcProbe;
 
     private String lastHwcTarget = "";
-
     private FpsProvider.Reading lastHwcReading;
 
     private volatile long rootCheckedAt;
@@ -108,9 +106,6 @@ public final class MainActivity extends Activity {
         updates =
                 new UpdateManager(this);
 
-        /*
-         * Crear la sesión antes de AutoReports.
-         */
         newSession();
 
         autoReports =
@@ -119,10 +114,6 @@ public final class MainActivity extends Activity {
                         () -> sessionLog
                 );
 
-        /*
-         * Solicitar/verificar root
-         * al iniciar Dashboard.
-         */
         requestRoot();
 
         FrameLayout root =
@@ -132,9 +123,6 @@ public final class MainActivity extends Activity {
                 0xff0c1320
         );
 
-        /*
-         * WALLPAPER
-         */
         wallpaper =
                 new ImageView(this);
 
@@ -150,9 +138,6 @@ public final class MainActivity extends Activity {
                 )
         );
 
-        /*
-         * OSCURECIMIENTO
-         */
         shade =
                 new View(this);
 
@@ -171,9 +156,6 @@ public final class MainActivity extends Activity {
                 )
         );
 
-        /*
-         * CONTENIDO PRINCIPAL
-         */
         LinearLayout content =
                 new LinearLayout(this);
 
@@ -193,9 +175,6 @@ public final class MainActivity extends Activity {
                 )
         );
 
-        /*
-         * BOTONES
-         */
         LinearLayout controls =
                 new LinearLayout(this);
 
@@ -221,13 +200,12 @@ public final class MainActivity extends Activity {
         addButton(
                 controls,
                 "INFO",
-                () ->
-                        startActivity(
-                                new Intent(
-                                        this,
-                                        DiagnosticActivity.class
-                                )
+                () -> startActivity(
+                        new Intent(
+                                this,
+                                DiagnosticActivity.class
                         )
+                )
         );
 
         addButton(
@@ -256,9 +234,6 @@ public final class MainActivity extends Activity {
 
         immersive();
 
-        /*
-         * RESTAURAR WALLPAPER
-         */
         String saved =
                 preferences.getString(
                         "wallpaper",
@@ -266,7 +241,6 @@ public final class MainActivity extends Activity {
                 );
 
         if (saved != null) {
-
             loadWallpaper(
                     Uri.parse(saved),
                     false
@@ -274,15 +248,11 @@ public final class MainActivity extends Activity {
         }
 
         if (state == null) {
-
             message(
                     "RGDS Dashboard · GitHub"
             );
         }
 
-        /*
-         * Consulta automática de actualización.
-         */
         updates.check(false);
     }
 
@@ -296,21 +266,12 @@ public final class MainActivity extends Activity {
                 new Button(this);
 
         button.setText(label);
-
         button.setTextSize(12);
-
         button.setAllCaps(false);
-
-        button.setPadding(
-                0,
-                0,
-                0,
-                0
-        );
+        button.setPadding(0, 0, 0, 0);
 
         button.setOnClickListener(
-                view ->
-                        action.run()
+                v -> action.run()
         );
 
         row.addView(
@@ -347,28 +308,26 @@ public final class MainActivity extends Activity {
                     SessionLog log =
                             sessionLog;
 
-                    /*
-                     * Verificar periódicamente
-                     * que root siga disponible.
-                     */
                     if (
                             rootAuthorized
-                                    && android.os.SystemClock.elapsedRealtime()
+                                    && android.os.SystemClock
+                                    .elapsedRealtime()
                                     - rootCheckedAt
                                     > 30000
                     ) {
 
-                        CommandResult rootResult =
+                        CommandResult root =
                                 rootShell.runRootCommand(
                                         "id"
                                 );
 
                         rootCheckedAt =
-                                android.os.SystemClock.elapsedRealtime();
+                                android.os.SystemClock
+                                        .elapsedRealtime();
 
                         if (
                                 !RootShell.isRootIdentity(
-                                        rootResult
+                                        root
                                 )
                         ) {
 
@@ -388,7 +347,7 @@ public final class MainActivity extends Activity {
                             log.write(
                                     rootState
                                             + " "
-                                            + rootResult.diagnosticText()
+                                            + root.diagnosticText()
                             );
                         }
                     }
@@ -419,17 +378,20 @@ public final class MainActivity extends Activity {
                         );
                     }
 
-                    /*
-                     * FPS
-                     */
                     try {
 
                         snapshot.fps =
                                 sampleFps();
 
                     } catch (
-                            RuntimeException ignored
+                            RuntimeException e
                     ) {
+
+                        log.write(
+                                "FPS SAMPLE ERROR "
+                                        + e.getClass()
+                                        .getSimpleName()
+                        );
                     }
 
                     snapshot.rootStatus =
@@ -448,39 +410,48 @@ public final class MainActivity extends Activity {
                             target.summary();
 
                     snapshot.updated =
-                            java.time.LocalTime.now()
+                            java.time.LocalTime
+                                    .now()
                                     .withNano(0)
                                     .toString();
 
                     log.write(
                             "SAMPLE "
                                     + rootState
+
                                     + " target="
                                     + snapshot.target
+
                                     + " ["
                                     + snapshot.targetStatus
                                     + "] battery="
                                     + snapshot.battery
+
                                     + " ["
                                     + snapshot.batteryStatus
                                     + "] ram="
                                     + snapshot.ram
+
                                     + " ["
                                     + snapshot.ramStatus
                                     + "] cpu="
                                     + snapshot.cpu
+
                                     + " ["
                                     + snapshot.cpuStatus
                                     + "] thermal="
                                     + snapshot.thermal
+
                                     + " ["
                                     + snapshot.thermalSource
                                     + "] batteryTemp="
                                     + snapshot.batteryTemp
+
                                     + " ["
                                     + snapshot.batteryTempStatus
                                     + "] fps="
                                     + snapshot.fps.fps
+
                                     + " ["
                                     + snapshot.fps.status
                                     + "]"
@@ -512,26 +483,18 @@ public final class MainActivity extends Activity {
         );
     }
 
-    /*
-     * onPause no se utiliza deliberadamente.
-     *
-     * En algunos Android antiguos una Activity
-     * visible en la segunda pantalla puede entrar
-     * en estado paused.
-     */
     @Override
     protected void onStop() {
 
         generation++;
 
-        sessionLog.write(
-                "STOP pantalla no visible; muestreo detenido"
-        );
+        if (sessionLog != null) {
 
-        /*
-         * Guardar/enviar checkpoint
-         * antes de abandonar Dashboard.
-         */
+            sessionLog.write(
+                    "STOP pantalla no visible; muestreo detenido"
+            );
+        }
+
         if (autoReports != null) {
             autoReports.checkpoint();
         }
@@ -551,7 +514,6 @@ public final class MainActivity extends Activity {
         imageGeneration++;
 
         images.shutdownNow();
-
         rootWorker.shutdownNow();
 
         if (updates != null) {
@@ -569,9 +531,7 @@ public final class MainActivity extends Activity {
         }
 
         try {
-
             fpsProvider.close();
-
         } catch (
                 RuntimeException ignored
         ) {
@@ -618,9 +578,6 @@ public final class MainActivity extends Activity {
                 );
     }
 
-    /*
-     * WALLPAPER
-     */
     private void chooseWallpaper() {
 
         Intent intent =
@@ -658,15 +615,6 @@ public final class MainActivity extends Activity {
         }
     }
 
-    /**
-     * RESULTADOS DEL SELECTOR DE ARCHIVOS
-     *
-     * Gestiona:
-     *
-     * 41 = Wallpaper
-     * 42 = Exportar LOG
-     * 43 = Importar RGDS_API_KEY
-     */
     @Override
     protected void onActivityResult(
             int request,
@@ -681,9 +629,9 @@ public final class MainActivity extends Activity {
         );
 
         /*
-         * =========================================
-         * IMPORTAR API KEY
-         * =========================================
+         * ==========================================
+         * IMPORTAR RGDS_API_KEY
+         * ==========================================
          */
         if (
                 request
@@ -702,25 +650,16 @@ public final class MainActivity extends Activity {
             Uri keyUri =
                     data.getData();
 
-            /*
-             * Leer en un hilo aparte.
-             *
-             * Aunque el archivo es pequeño,
-             * algunos proveedores de documentos
-             * pueden tardar en responder.
-             */
             images.execute(
                     () -> {
 
                         boolean imported =
                                 autoReports != null
                                         && autoReports.importKey(
-                                                keyUri
-                                        );
+                                        keyUri
+                                );
 
-                        if (
-                                sessionLog != null
-                        ) {
+                        if (sessionLog != null) {
 
                             sessionLog.write(
                                     imported
@@ -763,9 +702,9 @@ public final class MainActivity extends Activity {
         }
 
         /*
-         * =========================================
+         * ==========================================
          * EXPORTAR LOG
-         * =========================================
+         * ==========================================
          */
         if (
                 request
@@ -788,7 +727,7 @@ public final class MainActivity extends Activity {
                 return;
             }
 
-            Uri targetUri =
+            Uri target =
                     data.getData();
 
             images.execute(
@@ -801,7 +740,7 @@ public final class MainActivity extends Activity {
                                 java.io.OutputStream out =
                                         getContentResolver()
                                                 .openOutputStream(
-                                                        targetUri,
+                                                        target,
                                                         "wt"
                                                 )
                         ) {
@@ -820,11 +759,14 @@ public final class MainActivity extends Activity {
                                 Exception e
                         ) {
 
-                            sessionLog.write(
-                                    "EXPORT ERROR "
-                                            + e.getClass()
-                                            .getSimpleName()
-                            );
+                            if (sessionLog != null) {
+
+                                sessionLog.write(
+                                        "EXPORT ERROR "
+                                                + e.getClass()
+                                                .getSimpleName()
+                                );
+                            }
                         }
 
                         final boolean saved =
@@ -850,9 +792,9 @@ public final class MainActivity extends Activity {
         }
 
         /*
-         * =========================================
+         * ==========================================
          * WALLPAPER
-         * =========================================
+         * ==========================================
          */
         if (
                 request != OPEN_WALLPAPER
@@ -928,7 +870,9 @@ public final class MainActivity extends Activity {
                         try (
                                 InputStream input =
                                         getContentResolver()
-                                                .openInputStream(uri)
+                                                .openInputStream(
+                                                        uri
+                                                )
                         ) {
 
                             BitmapFactory.decodeStream(
@@ -981,7 +925,9 @@ public final class MainActivity extends Activity {
                         try (
                                 InputStream input =
                                         getContentResolver()
-                                                .openInputStream(uri)
+                                                .openInputStream(
+                                                        uri
+                                                )
                         ) {
 
                             bitmap =
@@ -1010,17 +956,11 @@ public final class MainActivity extends Activity {
                                                 != imageGeneration
                                 ) {
 
-                                    if (
-                                            decoded != null
-                                    ) {
-
+                                    if (decoded != null) {
                                         decoded.recycle();
                                     }
 
-                                    if (
-                                            newlySelected
-                                    ) {
-
+                                    if (newlySelected) {
                                         releaseUnlessSaved(
                                                 uri
                                         );
@@ -1029,14 +969,9 @@ public final class MainActivity extends Activity {
                                     return;
                                 }
 
-                                if (
-                                        decoded == null
-                                ) {
+                                if (decoded == null) {
 
-                                    if (
-                                            newlySelected
-                                    ) {
-
+                                    if (newlySelected) {
                                         releaseUnlessSaved(
                                                 uri
                                         );
@@ -1053,9 +988,7 @@ public final class MainActivity extends Activity {
                                         decoded
                                 );
 
-                                if (
-                                        newlySelected
-                                ) {
+                                if (newlySelected) {
 
                                     String previous =
                                             preferences.getString(
@@ -1073,8 +1006,8 @@ public final class MainActivity extends Activity {
                                     if (
                                             previous != null
                                                     && !previous.equals(
-                                                            uri.toString()
-                                                    )
+                                                    uri.toString()
+                                            )
                                     ) {
 
                                         release(
@@ -1104,7 +1037,9 @@ public final class MainActivity extends Activity {
                         )
         ) {
 
-            release(uri);
+            release(
+                    uri
+            );
         }
     }
 
@@ -1146,12 +1081,12 @@ public final class MainActivity extends Activity {
                 null
         );
 
-        if (
-                previous != null
-        ) {
+        if (previous != null) {
 
             release(
-                    Uri.parse(previous)
+                    Uri.parse(
+                            previous
+                    )
             );
         }
     }
@@ -1240,6 +1175,7 @@ public final class MainActivity extends Activity {
         slider.setOnSeekBarChangeListener(
                 new SeekBar.OnSeekBarChangeListener() {
 
+                    @Override
                     public void onProgressChanged(
                             SeekBar bar,
                             int value,
@@ -1265,11 +1201,13 @@ public final class MainActivity extends Activity {
                                 .apply();
                     }
 
+                    @Override
                     public void onStartTrackingTouch(
                             SeekBar bar
                     ) {
                     }
 
+                    @Override
                     public void onStopTrackingTouch(
                             SeekBar bar
                     ) {
@@ -1312,9 +1250,6 @@ public final class MainActivity extends Activity {
         }
     }
 
-    /*
-     * SESIONES
-     */
     private void newSession() {
 
         if (
@@ -1368,9 +1303,6 @@ public final class MainActivity extends Activity {
                 log;
     }
 
-    /*
-     * ROOT
-     */
     private void requestRoot() {
 
         if (requestingRoot) {
@@ -1458,8 +1390,11 @@ public final class MainActivity extends Activity {
     }
 
     /*
+     * ==========================================
      * FPS
+     * ==========================================
      */
+
     private FpsProvider.Reading sampleFps() {
 
         if (!rootAuthorized) {
@@ -1490,12 +1425,10 @@ public final class MainActivity extends Activity {
                 );
 
         /*
-         * Si todavía no se eligió una capa,
-         * intentar HWC.
+         * Sin superficie elegida:
+         * intentar directamente HWC.
          */
-        if (
-                layer.isEmpty()
-        ) {
+        if (layer.isEmpty()) {
 
             return sampleHwcFps();
         }
@@ -1505,9 +1438,7 @@ public final class MainActivity extends Activity {
                         layer
                 );
 
-        if (
-                command == null
-        ) {
+        if (command == null) {
 
             return new FpsProvider.Reading(
                     null,
@@ -1552,7 +1483,8 @@ public final class MainActivity extends Activity {
                     result.diagnosticText();
 
             sessionLog.write(
-                    "FPS_DIAGNOSTIC layer="
+                    "FPS_DIAGNOSTIC"
+                            + " layer="
                             + layer
 
                             + " display="
@@ -1579,6 +1511,12 @@ public final class MainActivity extends Activity {
                     now;
         }
 
+        /*
+         * Si --latency funciona, usamos esos FPS.
+         *
+         * Si esta ROM no lo soporta, utilizamos
+         * automáticamente la lectura HWC mFps.
+         */
         return reading.fps == null
                 ? sampleHwcFps()
                 : reading;
@@ -1616,9 +1554,10 @@ public final class MainActivity extends Activity {
         if (
                 lastHwcReading != null
                         && key.equals(
-                                lastHwcTarget
-                        )
-                        && now - lastHwcProbe
+                        lastHwcTarget
+                )
+                        && now
+                        - lastHwcProbe
                         < 5000
         ) {
 
@@ -1657,7 +1596,8 @@ public final class MainActivity extends Activity {
                 reading;
 
         sessionLog.write(
-                "HWC_FPS package="
+                "HWC_FPS"
+                        + " package="
                         + game
 
                         + " selectedAndroidDisplay="
@@ -1689,14 +1629,24 @@ public final class MainActivity extends Activity {
     }
 
     /*
-     * SELECCIÓN DE SUPERFICIE
+     * ==========================================
+     * SELECCIÓN DE SUPERFICIE FPS
+     *
+     * v0.5:
+     *
+     * 1. Intenta SurfaceFlinger --list.
+     * 2. Si está vacío, falla o no encuentra
+     *    el paquete, consulta el dump completo.
+     * 3. SurfaceCatalog ordena SurfaceView/BLAST
+     *    como superficie recomendada.
+     * ==========================================
      */
+
     private void chooseFpsLayer() {
 
         if (
                 !rootAuthorized
-                        || target.packageName()
-                        .isEmpty()
+                        || target.packageName().isEmpty()
                         || !target.displayAvailable()
         ) {
 
@@ -1707,49 +1657,220 @@ public final class MainActivity extends Activity {
             return;
         }
 
-        String selectedPackage =
+        final String selectedPackage =
                 target.packageName();
 
-        int selectedDisplay =
+        final int selectedDisplay =
                 target.displayId();
+
+        message(
+                "Buscando superficie del juego…"
+        );
 
         rootWorker.execute(
                 () -> {
 
-                    CommandResult result =
+                    /*
+                     * ==================================
+                     * INTENTO 1
+                     *
+                     * SurfaceFlinger --list
+                     * ==================================
+                     */
+                    CommandResult listResult =
                             rootShell.runRootCommand(
                                     "dumpsys SurfaceFlinger --list"
                             );
 
-                    SurfaceCatalog catalog =
+                    SurfaceCatalog listCatalog =
                             new SurfaceCatalog(
-                                    result,
+                                    listResult,
                                     selectedPackage,
                                     getPackageName()
                             );
 
+                    String listDiagnostic =
+                            listResult.diagnosticText();
+
                     sessionLog.write(
-                            "SURFACE_LIST package="
+                            "SURFACE_DISCOVERY_LIST"
+                                    + " package="
                                     + selectedPackage
 
                                     + " display="
                                     + selectedDisplay
 
                                     + " "
-                                    + catalog.summary()
+                                    + listCatalog.summary()
 
                                     + "\n"
-                                    + result.diagnosticText()
+
+                                    + listDiagnostic.substring(
+                                    0,
+                                    Math.min(
+                                            listDiagnostic.length(),
+                                            12000
+                                    )
+                            )
                     );
+
+                    SurfaceCatalog chosenCatalog =
+                            listCatalog;
+
+                    String chosenSource =
+                            "SurfaceFlinger --list";
+
+                    /*
+                     * La RG DS con TrebleDroid Android 14
+                     * devuelve exit=0 pero stdout vacío
+                     * para --list.
+                     *
+                     * También hacemos fallback cuando no
+                     * encuentra el paquete del juego.
+                     */
+                    boolean needsFallback =
+                            listCatalog.error != null
+
+                                    || listCatalog.layers.isEmpty()
+
+                                    || listCatalog.matches == 0
+
+                                    || listResult.stdout
+                                    .trim()
+                                    .isEmpty();
+
+                    if (needsFallback) {
+
+                        /*
+                         * ==============================
+                         * INTENTO 2
+                         *
+                         * Dump completo SurfaceFlinger
+                         * ==============================
+                         */
+                        CommandResult fullResult =
+                                rootShell.runRootCommand(
+                                        "/system/bin/dumpsys SurfaceFlinger"
+                                );
+
+                        SurfaceCatalog fullCatalog =
+                                new SurfaceCatalog(
+                                        fullResult,
+                                        selectedPackage,
+                                        getPackageName()
+                                );
+
+                        String fullDiagnostic =
+                                fullResult.diagnosticText();
+
+                        /*
+                         * Evitar introducir decenas de KB
+                         * en cada sesión.
+                         *
+                         * Conservamos principio y final.
+                         */
+                        String firstPart =
+                                fullDiagnostic.substring(
+                                        0,
+                                        Math.min(
+                                                fullDiagnostic.length(),
+                                                12000
+                                        )
+                                );
+
+                        String lastPart =
+                                "";
+
+                        if (
+                                fullDiagnostic.length()
+                                        > 12000
+                        ) {
+
+                            int start =
+                                    Math.max(
+                                            12000,
+                                            fullDiagnostic.length()
+                                                    - 12000
+                                    );
+
+                            lastPart =
+                                    "\n\n"
+                                            + "[... parte intermedia omitida ...]"
+                                            + "\n\n"
+
+                                            + fullDiagnostic.substring(
+                                            start
+                                    );
+                        }
+
+                        sessionLog.write(
+                                "SURFACE_DISCOVERY_FULL"
+                                        + " package="
+                                        + selectedPackage
+
+                                        + " display="
+                                        + selectedDisplay
+
+                                        + " "
+                                        + fullCatalog.summary()
+
+                                        + "\n"
+
+                                        + firstPart
+
+                                        + lastPart
+                        );
+
+                        /*
+                         * Preferir dump completo cuando
+                         * encontró una capa del juego.
+                         *
+                         * Si --list estaba completamente
+                         * vacío también aceptamos sus
+                         * superficies seleccionables.
+                         */
+                        if (
+                                fullCatalog.error == null
+
+                                        && (
+                                        fullCatalog.matches > 0
+
+                                                || listCatalog.error != null
+
+                                                || listCatalog.layers
+                                                .isEmpty()
+                                )
+                        ) {
+
+                            chosenCatalog =
+                                    fullCatalog;
+
+                            chosenSource =
+                                    "dump completo";
+                        }
+                    }
+
+                    final SurfaceCatalog catalog =
+                            chosenCatalog;
+
+                    final String source =
+                            chosenSource;
 
                     main.post(
                             () -> {
 
+                                /*
+                                 * El usuario podría cambiar
+                                 * juego/pantalla durante la
+                                 * consulta.
+                                 */
                                 if (
                                         destroyed
+
                                                 || !selectedPackage.equals(
-                                                        target.packageName()
-                                                )
+                                                target.packageName()
+                                        )
+
                                                 || selectedDisplay
                                                 != target.displayId()
                                 ) {
@@ -1757,24 +1878,31 @@ public final class MainActivity extends Activity {
                                     return;
                                 }
 
+                                /*
+                                 * NO HAY RESULTADO
+                                 */
                                 if (
-                                        catalog.error
-                                                != null
-
-                                                || catalog.layers
-                                                .isEmpty()
+                                        catalog.error != null
+                                                || catalog.layers.isEmpty()
                                 ) {
 
                                     new AlertDialog.Builder(
                                             this
                                     )
+
                                             .setTitle(
                                                     "Superficies FPS"
                                             )
+
                                             .setMessage(
                                                     catalog.summary()
-                                                            + "\nLa respuesta está guardada en LOG."
+
+                                                            + "\n\nFuente utilizada: "
+                                                            + source
+
+                                                            + "\n\nNo se encontró una superficie seleccionable."
                                             )
+
                                             .setNeutralButton(
                                                     "Diagnosticar",
                                                     (
@@ -1789,15 +1917,20 @@ public final class MainActivity extends Activity {
                                                                     )
                                                             )
                                             )
+
                                             .setPositiveButton(
                                                     "Aceptar",
                                                     null
                                             )
+
                                             .show();
 
                                     return;
                                 }
 
+                                /*
+                                 * CONSTRUIR LISTA
+                                 */
                                 String[] labels =
                                         new String[
                                                 catalog.layers.size()
@@ -1809,95 +1942,174 @@ public final class MainActivity extends Activity {
                                         i++
                                 ) {
 
+                                    String prefix =
+                                            i < catalog.matches
+                                                    ? "[Juego] "
+                                                    : "[Sin verificar] ";
+
+                                    /*
+                                     * SurfaceCatalog coloca
+                                     * SurfaceView/BLAST primero.
+                                     */
+                                    if (
+                                            i == 0
+                                                    && catalog.matches > 0
+                                    ) {
+
+                                        prefix =
+                                                "[Recomendada] ";
+                                    }
+
                                     labels[i] =
-                                            (
-                                                    i < catalog.matches
-                                                            ? "[Paquete] "
-                                                            : "[Sin verificar] "
-                                            )
+                                            prefix
                                                     + catalog.layers.get(
                                                     i
                                             );
                                 }
 
+                                /*
+                                 * MOSTRAR SUPERFICIES
+                                 */
                                 new AlertDialog.Builder(
                                         this
                                 )
+
                                         .setTitle(
-                                                "Superficies: "
+                                                "Superficies · "
                                                         + catalog.matches
-                                                        + " del paquete"
+                                                        + " del juego"
                                         )
+
                                         .setItems(
                                                 labels,
                                                 (
                                                         dialog,
                                                         which
-                                                ) ->
+                                                ) -> {
 
-                                                        new AlertDialog.Builder(
-                                                                this
-                                                        )
-                                                                .setTitle(
-                                                                        "Confirmar superficie"
-                                                                )
-                                                                .setMessage(
-                                                                        "Seleccionaste: "
-                                                                                + catalog.layers.get(
-                                                                                which
-                                                                        )
-                                                                                + "\nLa lista no demuestra el juego ni la pantalla de cada superficie. "
-                                                                                + "Confirma que corresponde al juego visible. "
-                                                                                + "Mediremos presentaciones, no los Hz."
-                                                                )
-                                                                .setPositiveButton(
-                                                                        "Confirmar",
-                                                                        (
-                                                                                confirmation,
-                                                                                button
-                                                                        ) -> {
+                                                    final String selectedLayer =
+                                                            catalog.layers.get(
+                                                                    which
+                                                            );
 
-                                                                            if (
-                                                                                    !selectedPackage.equals(
-                                                                                            target.packageName()
-                                                                                    )
-                                                                                            || selectedDisplay
-                                                                                            != target.displayId()
-                                                                            ) {
+                                                    boolean recommended =
+                                                            which == 0
+                                                                    && catalog.matches > 0;
 
-                                                                                return;
-                                                                            }
+                                                    new AlertDialog.Builder(
+                                                            this
+                                                    )
 
-                                                                            String selectedLayer =
-                                                                                    catalog.layers.get(
-                                                                                            which
-                                                                                    );
+                                                            .setTitle(
+                                                                    recommended
+                                                                            ? "Superficie recomendada"
+                                                                            : "Confirmar superficie"
+                                                            )
 
-                                                                            preferences.edit()
-                                                                                    .putString(
-                                                                                            "fpsLayer",
-                                                                                            selectedLayer
-                                                                                    )
-                                                                                    .apply();
+                                                            .setMessage(
+                                                                    selectedLayer
 
-                                                                            sessionLog.write(
-                                                                                    "SURFACE_SELECTED layer="
-                                                                                            + selectedLayer
+                                                                            + "\n\nPaquete: "
+                                                                            + selectedPackage
 
-                                                                                            + " package="
-                                                                                            + selectedPackage
+                                                                            + "\nPantalla Android: "
+                                                                            + selectedDisplay
 
-                                                                                            + " display="
-                                                                                            + selectedDisplay
+                                                                            + "\nFuente: "
+                                                                            + source
+
+                                                                            + "\n\nDashboard intentará medir "
+                                                                            + "los tiempos de presentación "
+                                                                            + "de esta superficie."
+
+                                                                            + "\n\nSi --latency no funciona "
+                                                                            + "en esta ROM, se utilizará "
+                                                                            + "automáticamente el mFps "
+                                                                            + "del compositor HWC."
+                                                            )
+
+                                                            .setPositiveButton(
+                                                                    "Usar esta superficie",
+                                                                    (
+                                                                            confirmation,
+                                                                            button
+                                                                    ) -> {
+
+                                                                        if (
+                                                                                !selectedPackage.equals(
+                                                                                        target.packageName()
+                                                                                )
+
+                                                                                        || selectedDisplay
+                                                                                        != target.displayId()
+                                                                        ) {
+
+                                                                            message(
+                                                                                    "La selección cambió. Vuelve a elegir la superficie."
                                                                             );
+
+                                                                            return;
                                                                         }
-                                                                )
-                                                                .setNegativeButton(
-                                                                        "Cancelar",
-                                                                        null
-                                                                )
-                                                                .show()
+
+                                                                        preferences.edit()
+                                                                                .putString(
+                                                                                        "fpsLayer",
+                                                                                        selectedLayer
+                                                                                )
+                                                                                .apply();
+
+                                                                        /*
+                                                                         * Invalidar cachés para
+                                                                         * obtener una nueva lectura
+                                                                         * inmediatamente.
+                                                                         */
+                                                                        lastHwcReading =
+                                                                                null;
+
+                                                                        lastHwcTarget =
+                                                                                "";
+
+                                                                        lastHwcProbe =
+                                                                                0;
+
+                                                                        lastFpsDiagnostic =
+                                                                                0;
+
+                                                                        sessionLog.write(
+                                                                                "SURFACE_SELECTED"
+                                                                                        + " layer="
+                                                                                        + selectedLayer
+
+                                                                                        + " package="
+                                                                                        + selectedPackage
+
+                                                                                        + " display="
+                                                                                        + selectedDisplay
+
+                                                                                        + " source="
+                                                                                        + source
+                                                                        );
+
+                                                                        message(
+                                                                                "Superficie guardada. FPS actualizado."
+                                                                        );
+                                                                    }
+                                                            )
+
+                                                            .setNegativeButton(
+                                                                    "Cancelar",
+                                                                    null
+                                                            )
+
+                                                            .show();
+                                                }
                                         )
+
+                                        .setNegativeButton(
+                                                "Cancelar",
+                                                null
+                                        )
+
                                         .show();
                             }
                     );
@@ -1906,8 +2118,11 @@ public final class MainActivity extends Activity {
     }
 
     /*
+     * ==========================================
      * OPCIONES
+     * ==========================================
      */
+
     private void showOptions() {
 
         String[] items = {
@@ -2078,8 +2293,11 @@ public final class MainActivity extends Activity {
     }
 
     /*
+     * ==========================================
      * PRUEBAS Y REPORTES
+     * ==========================================
      */
+
     private void showReports() {
 
         String[] choices = {
