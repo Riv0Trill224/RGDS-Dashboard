@@ -132,4 +132,15 @@ jobs:
           gh release create "$tag" dist/RGDS-Dashboard.apk dist/SHA256SUMS.txt dist/update.json dist/RGDS-Linux-prototype.tar.gz \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "RGDS Dashboard $tag" \
             --draft --prerelease --notes-file docs/RELEASE_NOTES.md
+          mkdir -p verify-release
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" --dir verify-release
+          for name in RGDS-Dashboard.apk SHA256SUMS.txt update.json RGDS-Linux-prototype.tar.gz; do
+            cmp "dist/$name" "verify-release/$name"
+          done
           gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease
+          rm -rf verify-release
+          mkdir verify-release
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" --dir verify-release
+          for name in RGDS-Dashboard.apk SHA256SUMS.txt update.json RGDS-Linux-prototype.tar.gz; do
+            cmp "dist/$name" "verify-release/$name"
+          done
