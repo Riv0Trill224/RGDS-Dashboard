@@ -1,3 +1,21 @@
+# RGDS Dashboard v0.4.0-test6 — diagnóstico FPS sin PC
+
+VersionCode 9. Pruebas → Diagnóstico FPS sin PC permite ejecutar una captura
+manual de SurfaceFlinger con root, sin terminal ni conexión USB. También se abre
+con Diagnosticar en el aviso del selector vacío.
+
+Compara la lista por PATH, la lista usando /system/bin/dumpsys y el informe completo.
+Conserva stdout, stderr, salida vacía, código de salida, timeout y truncamiento.
+Cada consulta está limitada por el ejecutor existente. El resumen se puede copiar
+y el informe completo compartir como adjunto con una app instalada. El último
+informe queda en almacenamiento privado para recuperarlo al volver a abrir.
+
+El RAW puede contener nombres de otras apps/ventanas. No se envía automáticamente
+al correo ni a Cloudflare. El usuario elige compartirlo. No requiere configuración
+del Worker. Esta captura desde la app no sustituye la comparación independiente
+con ADB, pero aporta el informe completo que faltaba. No cambia la fuente de FPS
+ni afirma que la ROM sea incompatible. Prueba física aún pendiente.
+
 # RGDS Dashboard v0.4.0-test5 — selección y diagnóstico de superficies
 
 VersionCode 8. El aviso «No hay superficies compatibles» ocultaba resultados

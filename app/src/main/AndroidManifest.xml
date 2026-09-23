@@ -21,5 +21,7 @@
         </activity>
         <activity android:name=".DiagnosticActivity" android:exported="false"
             android:resizeableActivity="true" android:screenOrientation="landscape" />
+        <activity android:name=".SurfaceProbeActivity" android:exported="false"
+            android:resizeableActivity="true" android:screenOrientation="landscape" />
     </application>
 </manifest>

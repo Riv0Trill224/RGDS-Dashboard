@@ -350,6 +350,7 @@ public final class MainActivity extends Activity {
                 if (catalog.error != null || catalog.layers.isEmpty()) {
                     new AlertDialog.Builder(this).setTitle("Superficies FPS")
                             .setMessage(catalog.summary() + "\nLa respuesta está guardada en LOG.")
+                            .setNeutralButton("Diagnosticar", (dialog, which) -> startActivity(new Intent(this, SurfaceProbeActivity.class)))
                             .setPositiveButton("Aceptar", null).show();
                     return;
                 }
@@ -393,7 +394,7 @@ public final class MainActivity extends Activity {
         }).show();
     }
     private void showReports() {
-        String[] choices = {"Iniciar nueva prueba", "Finalizar prueba y preparar correo", "Reportar incidencia actual", "Sesiones anteriores", "Configurar correo de destino", "Exportar log actual", "Autoenvío de desarrollo (5 min)"};
+        String[] choices = {"Iniciar nueva prueba", "Finalizar prueba y preparar correo", "Reportar incidencia actual", "Sesiones anteriores", "Configurar correo de destino", "Exportar log actual", "Autoenvío de desarrollo (5 min)", "Diagnóstico FPS sin PC"};
         new AlertDialog.Builder(this).setTitle("Pruebas y reportes").setItems(choices, (d, which) -> {
             switch (which) {
                 case 0: newSession(); message("Nueva prueba iniciada."); break;
@@ -402,6 +403,7 @@ public final class MainActivity extends Activity {
                             sessionLog.finish(new String[]{"correcto", "fallo", "interrumpida"}[result]); previewReport();
                         }).show(); break;
                 case 2: previewReport(); break; case 3: reports.chooseSaved(); break;
+                case 7: startActivity(new Intent(this, SurfaceProbeActivity.class)); break;
                 case 4: reports.configure(); break; case 6: autoReports.configure(this); break; default: exportLog();
             }
         }).show();
