@@ -1,0 +1,52 @@
+name: Recover test7 release assets
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/repair-test7.yml']
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: Riv0Trill224/RGDS-Dashboard
+          run-id: 35834635039
+          name: RGDS-Dashboard-signed-test-10
+          path: dist
+      - name: Restore missing assets without replacing published files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: Riv0Trill224/RGDS-Dashboard
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum --check SHA256SUMS.txt
+          python3 - <<'CHECK'
+          import json,hashlib,pathlib
+          info=json.loads(pathlib.Path('update.json').read_text())
+          assert info['versionName']=='0.4.0-test7' and info['versionCode']==10
+          apk=pathlib.Path('RGDS-Dashboard.apk').read_bytes()
+          assert info['sha256']==hashlib.sha256(apk).hexdigest()
+          assert info['size']==len(apk)
+          CHECK
+          for name in RGDS-Dashboard.apk SHA256SUMS.txt update.json RGDS-Linux-prototype.tar.gz; do
+            if gh release view v0.4.0-test7 --json assets --jq '.assets[].name' | grep -Fxq "$name"; then
+              mkdir -p existing
+              gh release download v0.4.0-test7 --pattern "$name" --dir existing
+              cmp "$name" "existing/$name"
+            else
+              gh release upload v0.4.0-test7 "$name"
+            fi
+          done
+          mkdir -p verified
+          gh release download v0.4.0-test7 --dir verified
+          for name in RGDS-Dashboard.apk SHA256SUMS.txt update.json RGDS-Linux-prototype.tar.gz; do
+            cmp "$name" "verified/$name"
+          done
