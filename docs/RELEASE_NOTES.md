@@ -1,6 +1,19 @@
-# RGDS Dashboard v0.4.0-test2 — hotfix de diagnóstico y reportes
+# RGDS Dashboard v0.4.0-test3 — integración Cloudflare
 
-APK pública de prueba firmada con la misma clave; versionCode 5. Se actualiza sobre
+VersionCode 6. Añade rgds-logger como destino HTTPS preconfigurado, extractos acotados
+para Workers Logs y acuse autenticado por reportId. Cloudflare no equivale a SMTP:
+la interfaz dice recibido por Worker, no correo entregado. No configura pagos ni recursos
+KV/R2/D1. Conserva el log completo en la consola.
+
+**Acción necesaria:** actualizar el Worker desplegado con cloudflare/worker.mjs,
+configurar RGDS_API_KEY e introducir su valor privado en Pruebas → Autoenvío de desarrollo.
+El receptor inicial ok/message/receivedAt no basta; los reportes quedan pendientes
+hasta recibir el nuevo acuse. Ver cloudflare/README.md. No se ha desplegado este cambio
+desde GitHub ni verificado recepción real desde la consola.
+
+## Cambios conservados del hotfix test2
+
+APK pública de prueba firmada con la misma clave. Se actualiza sobre
 v0.4.0-test1 sin desinstalar. Descarga RGDS-Dashboard.apk o usa Opciones → Buscar actualización.
 
 - Aviso visible del resultado de root al iniciar o reintentar.
