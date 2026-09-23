@@ -37,6 +37,8 @@ public final class MainActivity extends Activity {
     private TargetSelection target;
     private ReportComposer reports;
     private UpdateManager updates;
+    private AutoReports autoReports;
+    private long lastFpsDiagnostic;
     private volatile long rootCheckedAt;
     private volatile boolean requestingRoot;
     private byte[] pendingLog;
@@ -60,6 +62,7 @@ public final class MainActivity extends Activity {
         reports = new ReportComposer(this);
         updates = new UpdateManager(this);
         newSession();
+        autoReports = new AutoReports(this, () -> sessionLog);
         requestRoot();
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(0xff0c1320);
@@ -142,6 +145,7 @@ public final class MainActivity extends Activity {
     @Override protected void onStop() {
         generation++;
         sessionLog.write("STOP pantalla no visible; muestreo detenido");
+        autoReports.checkpoint();
         if (sampler != null) sampler.shutdownNow();
         super.onStop();
     }
@@ -151,6 +155,7 @@ public final class MainActivity extends Activity {
         images.shutdownNow();
         rootWorker.shutdownNow();
         updates.close();
+        autoReports.close();
         sessionLog.write("DESTROY");
         try { fpsProvider.close(); } catch (RuntimeException ignored) { }
         main.removeCallbacksAndMessages(null);
@@ -303,6 +308,8 @@ public final class MainActivity extends Activity {
             rootCheckedAt = android.os.SystemClock.elapsedRealtime();
             preferences.edit().putBoolean("rootAuthorized", rootAuthorized).apply();
             sessionLog.write(rootState + "\n" + result.diagnosticText());
+            final String notice = rootState + (rootAuthorized ? " · lecturas privilegiadas activas" : " · revisa tu gestor root");
+            main.post(() -> { if (!destroyed) message(notice); });
             requestingRoot = false;
         });
     }
@@ -314,8 +321,17 @@ public final class MainActivity extends Activity {
         String command = SurfaceFps.command(layer);
         if (command == null) return new FpsProvider.Reading(null, "Nombre de superficie no compatible");
         CommandResult result = rootShell.runRootCommand(command);
-        if (!result.succeeded() || result.truncated) return new FpsProvider.Reading(null, StatsReader.failure(result));
-        return SurfaceFps.parse(result.stdout, System.nanoTime());
+        FpsProvider.Reading reading = !result.succeeded() || result.truncated
+                ? new FpsProvider.Reading(null, StatsReader.failure(result)) : SurfaceFps.parse(result.stdout, System.nanoTime());
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (now - lastFpsDiagnostic >= 30000 || lastFpsDiagnostic == 0) {
+            String raw = result.diagnosticText();
+            sessionLog.write("FPS_DIAGNOSTIC layer=" + layer + " display=" + target.displayId()
+                    + " monoNs=" + System.nanoTime() + " reason=" + reading.status + "\n"
+                    + raw.substring(0, Math.min(raw.length(), 12000)));
+            lastFpsDiagnostic = now;
+        }
+        return reading;
     }
     private void chooseFpsLayer() {
         if (!rootAuthorized || target.packageName().isEmpty() || !target.displayAvailable()) {
@@ -362,7 +378,7 @@ public final class MainActivity extends Activity {
         }).show();
     }
     private void showReports() {
-        String[] choices = {"Iniciar nueva prueba", "Finalizar prueba y preparar correo", "Reportar incidencia actual", "Sesiones anteriores", "Configurar correo de destino", "Exportar log actual"};
+        String[] choices = {"Iniciar nueva prueba", "Finalizar prueba y preparar correo", "Reportar incidencia actual", "Sesiones anteriores", "Configurar correo de destino", "Exportar log actual", "Autoenvío de desarrollo (5 min)"};
         new AlertDialog.Builder(this).setTitle("Pruebas y reportes").setItems(choices, (d, which) -> {
             switch (which) {
                 case 0: newSession(); message("Nueva prueba iniciada."); break;
@@ -371,7 +387,7 @@ public final class MainActivity extends Activity {
                             sessionLog.finish(new String[]{"correcto", "fallo", "interrumpida"}[result]); previewReport();
                         }).show(); break;
                 case 2: previewReport(); break; case 3: reports.chooseSaved(); break;
-                case 4: reports.configure(); break; default: exportLog();
+                case 4: reports.configure(); break; case 6: autoReports.configure(this); break; default: exportLog();
             }
         }).show();
     }

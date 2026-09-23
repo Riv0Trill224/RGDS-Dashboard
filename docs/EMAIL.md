@@ -1,5 +1,14 @@
 # Correo de pruebas y reportes
 
+## Hotfix v0.4.0-test2
+
+Destino aportado: riv0trill224@icloud.com. El correo manual lo trae preconfigurado.
+Pruebas → Autoenvío de desarrollo habilita captura/cola cada cinco minutos y al salir.
+Requiere URL HTTPS y token privado de un relay desplegado; ver [instrucciones](../report-relay/README.md).
+El código del relay ya existe; **hosting y remitente SMTP aún pendientes**.
+No se ha enviado ni recibido un reporte real. El resto de este documento explica
+el flujo manual y los requisitos del servicio para ampliar el desarrollo.
+
 ## Implementado en v0.4
 
 1. Crear/elegir un buzón dedicado (Gmail, Outlook o proveedor propio).

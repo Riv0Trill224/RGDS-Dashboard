@@ -46,7 +46,12 @@ respalda tus registros antes. Las APK oficiales conservan la misma clave de firm
 
 ## Correo y privacidad
 
-El destinatario es configurable porque el correo dedicado aún debe aportarse.
+Hotfix v0.4.0-test2: destino manual por defecto `riv0trill224@icloud.com`, aviso root
+y diagnóstico FPS ampliado. Autoenvío de desarrollo configurable cada cinco minutos:
+requiere desplegar [el relay HTTPS/SMTP](report-relay/README.md). El código está incluido,
+pero **no existe un servicio activo configurado**. Sin URL/token no envía; conserva cola.
+
+El destinatario manual es configurable.
 La app guarda hasta 10 registros privados de 2 MiB por sesión. Incluyen versión,
 modelo/ROM, tiempos, selección manual, métricas y errores. No captura logcat completo
 ni añade el diagnóstico RAW de otras apps al adjunto mínimo.

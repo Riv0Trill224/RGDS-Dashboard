@@ -20,7 +20,7 @@ final class ReportComposer {
     void configure() {
         EditText address = new EditText(activity);
         address.setSingleLine(true); address.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
-        address.setText(prefs.getString("reportEmail", ""));
+        address.setText(prefs.getString("reportEmail", "riv0trill224@icloud.com"));
         new AlertDialog.Builder(activity).setTitle("Correo dedicado para reportes")
                 .setMessage("Dirección de destino. No se necesita contraseña. Cada envío se confirma en tu cliente de correo.")
                 .setView(address).setPositiveButton("Guardar", (d, w) -> {
@@ -71,7 +71,7 @@ final class ReportComposer {
         form.addView(field); return field;
     }
     private void send(byte[] log, String notes, String name) {
-        String address = prefs.getString("reportEmail", "");
+        String address = prefs.getString("reportEmail", "riv0trill224@icloud.com");
         if (address.isEmpty()) { message("Configura primero el correo de destino en Reportes."); configure(); return; }
         try {
             File file = SharedFiles.create(activity, ".log");
