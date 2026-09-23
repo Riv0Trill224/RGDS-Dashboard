@@ -39,6 +39,9 @@ public final class MainActivity extends Activity {
     private UpdateManager updates;
     private AutoReports autoReports;
     private long lastFpsDiagnostic;
+    private long lastHwcProbe;
+    private String lastHwcTarget = "";
+    private FpsProvider.Reading lastHwcReading;
     private volatile long rootCheckedAt;
     private volatile boolean requestingRoot;
     private byte[] pendingLog;
@@ -314,10 +317,13 @@ public final class MainActivity extends Activity {
         });
     }
     private FpsProvider.Reading sampleFps() {
-        if (!rootAuthorized) return new FpsProvider.Reading(null, "FPS experimental requiere root");
+        if (!rootAuthorized) {
+            lastHwcReading = null;
+            return new FpsProvider.Reading(null, "FPS experimental requiere root");
+        }
         if (!target.displayAvailable()) return new FpsProvider.Reading(null, "Selecciona pantalla del juego");
         String layer = preferences.getString("fpsLayer", "");
-        if (layer.isEmpty()) return new FpsProvider.Reading(null, "Selecciona superficie FPS en Opciones");
+        if (layer.isEmpty()) return sampleHwcFps();
         String command = SurfaceFps.command(layer);
         if (command == null) return new FpsProvider.Reading(null, "Nombre de superficie no compatible");
         CommandResult result = rootShell.runRootCommand(command);
@@ -331,6 +337,25 @@ public final class MainActivity extends Activity {
                     + raw.substring(0, Math.min(raw.length(), 12000)));
             lastFpsDiagnostic = now;
         }
+        return reading.fps == null ? sampleHwcFps() : reading;
+    }
+    private FpsProvider.Reading sampleHwcFps() {
+        String game = target.packageName();
+        if (game.isEmpty()) return new FpsProvider.Reading(null, "Selecciona juego para FPS");
+        String key = game + ":" + target.displayId() + ":" + preferences.getString("fpsLayer", "");
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (lastHwcReading != null && key.equals(lastHwcTarget) && now - lastHwcProbe < 5000)
+            return lastHwcReading;
+        CommandResult result = rootShell.runRootCommand("/system/bin/dumpsys SurfaceFlinger");
+        FpsProvider.Reading reading = !result.succeeded() || result.truncated
+                ? new FpsProvider.Reading(null, StatsReader.failure(result)) : HwcFps.parse(result.stdout, game);
+        lastHwcProbe = android.os.SystemClock.elapsedRealtime();
+        lastHwcTarget = key;
+        lastHwcReading = reading;
+        sessionLog.write("HWC_FPS package=" + game + " selectedAndroidDisplay=" + target.displayId()
+                + " fps=" + reading.fps + " source=" + reading.status
+                + " exit=" + result.exitCode + " timeout=" + result.timedOut + " truncated=" + result.truncated
+                + " stdoutChars=" + result.stdout.length() + " stderr=" + result.stderr);
         return reading;
     }
     private void chooseFpsLayer() {

@@ -1,3 +1,28 @@
+# RGDS Dashboard v0.4.0-test7 — FPS del compositor como alternativa
+
+VersionCode 10. Cuando no hay superficie seleccionada, o su historial no ofrece
+FPS, consulta el informe completo de SurfaceFlinger y lee la columna mFps de la
+capa cuyo nombre coincide con el paquete elegido. Funciona con el formato HWC
+observado en la captura TrebleDroid de la RG DS; no se presupone disponible en
+cada fabricante. No usa los Hz, FramebufferSurface ni el promedio global FPS.
+
+La fuente figura como «FPS compositor · HWC N». N es el identificador del
+compositor, no el display lógico Android elegido por el usuario. Solo admite una
+capa inequívoca del paquete en el informe; varias coincidencias dan --. No aplica
+el ID Android como si fuera HWC. Consulta como máximo una vez cada cinco segundos
+mientras el panel se muestrea; cada resultado conserva origen/estado en HWC_FPS.
+Un resultado fallido reemplaza la lectura anterior. El dato puede tener el
+promedio o retardo que aplique el driver; no se presenta como FPS internos del motor.
+
+Pruebas del parser con el formato observado: 34.9 para Minecraft, no 6.0 del panel,
+60 Hz ni 31.26 del compositor global; otros paquetes, valores inválidos, cero y
+capas ambiguas. La lectura continua y el coste en hardware siguen pendientes de
+comprobar en la consola. No se publica el informe personal completo como fixture.
+
+Actualizar, elegir el juego, mantenerlo activo y esperar 5–10 segundos. No hace
+falta elegir una superficie para esta alternativa. Si continúa --, compartir LOG
+con HWC_FPS y el diagnóstico sin PC.
+
 # RGDS Dashboard v0.4.0-test6 — diagnóstico FPS sin PC
 
 VersionCode 9. Pruebas → Diagnóstico FPS sin PC permite ejecutar una captura
