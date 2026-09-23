@@ -6,6 +6,16 @@ import java.util.Map;
 import static org.junit.Assert.*;
 
 public class DiagnosticAnalysisTest {
+    @Test public void processRecordAcceptsAllDelimitersWithoutMatchingAnotherPackage() {
+        for (String delimiter : new String[]{"/u0a42}", "}", " "}) {
+            Map<String, CommandResult> results = new LinkedHashMap<>();
+            results.put("ACTIVITY DUMPSYS", output("ProcessRecord{abc 1832:com.mojang.minecraftpe" + delimiter
+                    + "\nProcessRecord{abc 999:com.mojang.minecraftpe.fake/u0a42}"));
+            String summary = DiagnosticAnalysis.application(results, "com.mojang.minecraftpe");
+            assertTrue(summary.contains("PID: 1832\n"));
+            assertFalse(summary.contains("999"));
+        }
+    }
     private static CommandResult output(String text) {
         return new CommandResult(text, "", 0, false, false, false, false);
     }

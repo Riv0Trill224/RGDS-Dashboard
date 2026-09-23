@@ -1,3 +1,14 @@
+# RGDS Dashboard v0.4.0-test4 — diagnóstico compatible con Android
+
+VersionCode 7. Corrige la llave literal sin escapar en la expresión del proceso
+objetivo: causaba PatternSyntaxException en INFO en Android/ICU (test2 y test3).
+Añade comprobación nativa ICU en CI, además de pruebas JVM para delimitadores y
+paquetes parecidos. La prueba reproduce el rechazo del patrón anterior.
+
+Este arreglo no demuestra que FPS funcione: tras actualizar, repetir selección de
+superficie, mantener el juego activo 40 segundos y revisar LOG e INFO/RAW.
+Se mantiene la firma y el canal de actualización. Sin prueba física aprobada aún.
+
 # RGDS Dashboard v0.4.0-test3 — integración Cloudflare
 
 VersionCode 6. Añade rgds-logger como destino HTTPS preconfigurado, extractos acotados

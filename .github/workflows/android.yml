@@ -14,6 +14,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: Android ICU regex regression
+        run: python3 scripts/check_icu_regex.py
       - name: Linux prototype tests
         run: python3 -m unittest discover -s linux -p 'test_*.py'
       - name: Report relay tests (no email sent)

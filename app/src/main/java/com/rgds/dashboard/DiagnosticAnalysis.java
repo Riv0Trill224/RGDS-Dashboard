@@ -34,7 +34,8 @@ final class DiagnosticAnalysis {
     static String application(Map<String, CommandResult> results, String targetPackage) {
         if (targetPackage == null || targetPackage.isEmpty()) return "Selecciona una aplicación objetivo en Opciones. No se ha inferido el juego activo.";
         Pattern target = Pattern.compile("(?<![\\w.])" + Pattern.quote(targetPackage) + "(?![\\w.])");
-        Pattern process = Pattern.compile("\\b(\\d+):" + Pattern.quote(targetPackage) + "(?:/|\\s|})");
+        // Android's ICU rejects bare closing braces that desktop Java tolerates.
+        Pattern process = Pattern.compile("\\b(\\d+):" + Pattern.quote(targetPackage) + "(?:/|\\s|\\})");
         Set<String> pids = new LinkedHashSet<>(), displays = new LinkedHashSet<>(), surfaces = new LinkedHashSet<>();
         StringBuilder evidence = new StringBuilder();
         boolean found = false, complete = true;
